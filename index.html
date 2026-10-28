@@ -541,6 +541,18 @@ async function req(path,method,body,token){
   catch(e){return{ok:r.ok,status:r.status,data:t};}
 }
 function db(path,method,body){return req('/rest/v1'+path,method,body,U&&U.access_token);}
+// Funciones de servidor (supabase/migrations/001_seguridad.sql): XP, logros y cierre de mes
+function rpc(name,args){return db('/rpc/'+name,'POST',args||{});}
+function rpcErr(r,fallback){return(r.data&&r.data.message)||fallback;}
+// private_title no es legible por columnas; el dueño lo obtiene con my_private_titles()
+var MIS_COLS='id,group_id,user_id,xp_value,approved_by,period_start,created_at,private,title,description,type';
+async function withPrivateTitles(list){
+  if(!list.some(function(m){return m.private&&m.user_id===P.id;}))return list;
+  var r=await rpc('my_private_titles');
+  var map={};(r.data||[]).forEach(function(x){map[x.id]=x.private_title;});
+  list.forEach(function(m){if(map[m.id])m.private_title=map[m.id];});
+  return list;
+}
 async function authR(path,body){
   var r=await fetch(SB+'/auth/v1'+path,{method:'POST',headers:{'Content-Type':'application/json','apikey':KEY},body:JSON.stringify(body)});
   return r.json();
@@ -737,16 +749,13 @@ async function createGrp(){
   var btn=document.getElementById('s3-btn');
   btn.disabled=true;btn.textContent='Creando...';
   try{
-    var fgm=await db('/group_members?user_id=eq.'+F.id+'&select=group_id');
-    if(fgm.data&&fgm.data.length){
-      var gid=fgm.data[0].group_id;
-      var cur=await db('/group_members?group_id=eq.'+gid+'&select=user_id');
-      if((cur.data||[]).length>=6){showErr('s3-err','El grupo está lleno (6/6)');return;}
-      var already=await db('/group_members?group_id=eq.'+gid+'&user_id=eq.'+P.id+'&select=user_id');
-      if(!already.data||!already.data.length){
-        await db('/group_members','POST',{group_id:gid,user_id:P.id});
-        showJoinToast('Te has unido al grupo de tu rival automáticamente');
-      }
+    // Si el rival ya tiene grupo, el servidor te une a él (comprueba plazas)
+    var jr=await rpc('join_group_by_code',{p_code:F.friend_code});
+    var noGroup=!jr.ok&&/no tiene grupo/.test(rpcErr(jr,''));
+    if(!jr.ok&&!noGroup){showErr('s3-err',rpcErr(jr,'Error uniéndote al grupo de tu rival'));return;}
+    if(jr.ok){
+      var gid=jr.data;
+      showJoinToast('Te has unido al grupo de tu rival automáticamente');
       var gd2=await db('/groups?id=eq.'+gid+'&select=*');
       G=gd2.data[0];
       AllGroups=[G];
@@ -839,29 +848,18 @@ async function loadUA(){var r=await db('/user_achievements?user_id=eq.'+P.id+'&s
 
 async function checkMonthlyClose(){
   if(!G)return;
-  var period=getCurrentPeriod();
-  var gd=await db('/groups?id=eq.'+G.id+'&select=current_period');
-  if(!gd.data||!gd.data.length)return;
-  var stored=gd.data[0].current_period||period;
-  if(stored>=period)return;
-  // Month changed - process close
-  var mxp=await db('/monthly_xp?group_id=eq.'+G.id+'&period=eq.'+stored+'&select=*');
+  // El servidor cierra el mes de forma atómica (resultado, reinicio de misiones y periodo);
+  // devuelve el resultado solo al primero que lo ejecuta, null si no había nada que cerrar
+  var cm=await rpc('close_month',{p_group:G.id});
+  if(!cm.ok)return;
   await loadAllMembers();
-  var allMs=[P].concat(Members);
-  var xpMap={};
-  (mxp.data||[]).forEach(function(x){xpMap[x.user_id]=x.xp;});
-  var sorted=allMs.map(function(m){return{id:m.id,xp:xpMap[m.id]||0};}).sort(function(a,b){return b.xp-a.xp;});
-  var totalAll=sorted.reduce(function(s,m){return s+m.xp;},0);
-  if(totalAll>0){
-    var winnerId=sorted[0].id;
-    var loserId=sorted[sorted.length-1].id;
-    var won=winnerId===P.id;
-    // Save result
-    await db('/monthly_results','POST',{group_id:G.id,period:stored,winner_id:winnerId,winner_xp:sorted[0].xp,loser_id:loserId,loser_xp:sorted[sorted.length-1].xp});
-    // Achievements
+  var res=cm.data;
+  if(res){
+    var stored=res.period;
+    var won=res.winner_id===P.id;
     if(won){
       await unlockAch('monthly_winner');
-      if(sorted[0].xp>=(sorted[sorted.length-1].xp*2)&&sorted[sorted.length-1].xp>0)await unlockAch('double_win');
+      if(res.winner_xp>=res.loser_xp*2&&res.loser_xp>0)await unlockAch('double_win');
     }
     // Spin wheel if enabled and loser
     var wi=[];
@@ -882,31 +880,6 @@ async function checkMonthlyClose(){
       document.getElementById('mr-wheel').classList.add('hidden');
     }
     document.getElementById('monthres-overlay').classList.add('show');
-  }
-  // Reset for new month
-  await db('/groups?id=eq.'+G.id,'PATCH',{current_period:period});
-  // Delete old monthly missions and create new ones
-  var oldMis=await db('/missions?group_id=eq.'+G.id+'&type=eq.monthly&select=id');
-  for(var i=0;i<(oldMis.data||[]).length;i++){
-    await db('/mission_completions?mission_id=eq.'+oldMis.data[i].id,'DELETE');
-    await db('/missions?id=eq.'+oldMis.data[i].id,'DELETE');
-  }
-  // Create fresh monthly missions for each user
-  var today=localDate();
-  var allMems=[P].concat(Members);
-  for(var mi=0;mi<allMems.length;mi++){
-    var goals=await db('/goals?user_id=eq.'+allMems[mi].id+'&group_id=eq.'+G.id+'&select=text&limit=1');
-    var g=(goals.data&&goals.data.length)?goals.data[0].text:'tu objetivo';
-    var newMis=[
-      {title:'Alcanzar un hito clave en: '+g,xp_value:400,type:'monthly'},
-      {title:'Completar un reto mensual',xp_value:500,type:'monthly'},
-      {title:'Mantener racha de 20 días',xp_value:450,type:'monthly'}
-    ];
-    for(var ni=0;ni<newMis.length;ni++){
-      newMis[ni].group_id=G.id;newMis[ni].user_id=allMems[mi].id;
-      newMis[ni].period_start=today;newMis[ni].approved_by=P.id;
-      await db('/missions','POST',newMis[ni]);
-    }
   }
 }
 
@@ -956,7 +929,8 @@ async function refreshDash(){
   }
   if(G){
     var today=localDate();
-    var mis=await db('/missions?group_id=eq.'+G.id+'&user_id=eq.'+P.id+'&approved_by=not.is.null&select=*');
+    var mis=await db('/missions?group_id=eq.'+G.id+'&user_id=eq.'+P.id+'&approved_by=not.is.null&select='+MIS_COLS);
+    if(mis.data)await withPrivateTitles(mis.data);
     var comps=await db('/mission_completions?user_id=eq.'+P.id+'&completed_date=eq.'+today+'&select=mission_id');
     var allC=await db('/mission_completions?user_id=eq.'+P.id+'&select=mission_id');
     var doneT=new Set((comps.data||[]).map(function(c){return c.mission_id;}));
@@ -1129,7 +1103,7 @@ function selectMisType(type){
 
 async function saveNewMission(){
   var title=document.getElementById('am-title').value.trim();
-  var xp=parseInt(document.getElementById('am-xp').value)||80;
+  var xp=Math.min(2000,Math.max(0,parseInt(document.getElementById('am-xp').value)||80)); // límite de la BD
   var err=document.getElementById('am-err');
   err.textContent='';
   if(!title){err.textContent='Escribe un título';return;}
@@ -1139,7 +1113,7 @@ async function saveNewMission(){
   var r=await db('/missions','POST',{
     group_id:G.id,
     user_id:P.id,
-    title:title,
+    title:isPrivate?'Misión privada':title, // el título real solo va en private_title
     type:_amType,
     xp_value:xp,
     approved_by:P.id,
@@ -1230,23 +1204,11 @@ async function requestJoinGroup(){
   var msg=document.getElementById('jg-msg');
   msg.style.display='none';
   if(!code){msg.textContent='Introduce un código';msg.style.color='var(--red)';msg.style.display='block';return;}
-  // Find the member by friend code
-  var ur=await db('/profiles?friend_code=eq.'+code+'&select=id,username');
-  if(!ur.data||!ur.data.length){msg.textContent='Código no encontrado';msg.style.color='var(--red)';msg.style.display='block';return;}
-  var target=ur.data[0];
-  // Check if they have a group
-  var tgm=await db('/group_members?user_id=eq.'+target.id+'&select=group_id&limit=1');
-  if(!tgm.data||!tgm.data.length){msg.textContent=target.username+' no tiene grupo todavía';msg.style.color='var(--red)';msg.style.display='block';return;}
-  var gid=tgm.data[0].group_id;
-  // Check capacity
-  var curM=await db('/group_members?group_id=eq.'+gid+'&select=user_id');
-  if((curM.data||[]).length>=6){msg.textContent='Ese grupo está lleno (6/6)';msg.style.color='var(--red)';msg.style.display='block';return;}
-  // Check not already in group
-  var already=(curM.data||[]).find(function(m){return m.user_id===P.id;});
-  if(already){msg.textContent='Ya estás en ese grupo';msg.style.color='var(--text2)';msg.style.display='block';return;}
-  // Join group
-  var r=await db('/group_members','POST',{group_id:gid,user_id:P.id});
-  if(!r.ok){msg.textContent='Error al unirse';msg.style.color='var(--red)';msg.style.display='block';return;}
+  // El servidor busca el grupo del dueño del código, comprueba plazas y te une
+  var r=await rpc('join_group_by_code',{p_code:code});
+  if(!r.ok){msg.textContent=rpcErr(r,'Error al unirse');msg.style.color='var(--red)';msg.style.display='block';return;}
+  var gid=r.data;
+  if(AllGroups.some(function(g){return g.id===gid;})){msg.textContent='Ya estás en ese grupo';msg.style.color='var(--text2)';msg.style.display='block';return;}
   var gd=await db('/groups?id=eq.'+gid+'&select=*');
   G=gd.data[0];
   AllGroups.push(G);
@@ -1274,7 +1236,7 @@ function openCreateAch(){
 async function saveCustomAch(){
   var name=document.getElementById('ca-name').value.trim();
   var desc=document.getElementById('ca-desc').value.trim();
-  var xp=parseInt(document.getElementById('ca-xp').value)||0;
+  var xp=Math.min(500,Math.max(0,parseInt(document.getElementById('ca-xp').value)||0)); // límite de la BD
   var imgFile=document.getElementById('ca-img').files[0];
   var err=document.getElementById('ca-err');
   err.textContent='';
@@ -1354,18 +1316,13 @@ async function awardAchToBtn(btn){
 async function awardAchTo(achId, userId, username){
   var err=document.getElementById('award-err');
   err.textContent='';
-  var r=await db('/custom_achievement_unlocks','POST',{achievement_id:achId,user_id:userId});
+  // El servidor comprueba que ambos sois del grupo, registra el logro y suma el bonus de XP
+  var r=await rpc('award_custom_achievement',{p_ach:achId,p_user:userId});
   if(!r.ok){
-    err.textContent='Error al otorgar. Quizás ya lo tiene.';
+    err.textContent=/duplicate|unique/i.test(rpcErr(r,''))?'Ya tiene este logro.':rpcErr(r,'Error al otorgar.');
     return;
   }
-  // XP bonus
-  if(_currentAwardAch&&_currentAwardAch.xp_bonus>0){
-    var target=await db('/profiles?id=eq.'+userId+'&select=xp');
-    if(target.data&&target.data.length){
-      await db('/profiles?id=eq.'+userId,'PATCH',{xp:target.data[0].xp+_currentAwardAch.xp_bonus});
-    }
-    // Notify
+  if(_currentAwardAch&&_currentAwardAch.xp_bonus>0&&userId!==P.id){
     await sendNotif(userId,'level_up','🏅 Obtuviste el logro "'+(_currentAwardAch.name)+'"'+(+_currentAwardAch.xp_bonus>0?' (+'+_currentAwardAch.xp_bonus+' XP)':''));
   }
   showNotifToast('Logro otorgado a '+username,'level_up');
@@ -1443,7 +1400,7 @@ async function openMemberProfile(userId){
 
   if(!G)return;
   // Load their missions
-  var mis=await db('/missions?group_id=eq.'+G.id+'&user_id=eq.'+userId+'&approved_by=not.is.null&select=*');
+  var mis=await db('/missions?group_id=eq.'+G.id+'&user_id=eq.'+userId+'&approved_by=not.is.null&select='+MIS_COLS);
   var comps=await db('/mission_completions?user_id=eq.'+userId+'&select=mission_id,completed_date');
   var today=localDate();
   var wsStr=weekStart();
@@ -1487,49 +1444,24 @@ async function toggleM(id,isDone){
       if(title){if(isDone)title.classList.remove('done-text');else title.classList.add('done-text');}
     }
   });
-  var m=await db('/missions?id=eq.'+id+'&select=xp_value,type,title,private,private_title');
+  var m=await db('/missions?id=eq.'+id+'&select=xp_value,type,title,private');
   if(!m.data||!m.data.length)return;
   var mission=m.data[0];
-  if(isDone){
-    // Borra el completado del periodo que se muestra como hecho: hoy (diaria), esta semana (semanal)
-    // o cualquiera (mensual). Antes solo borraba el de hoy y las semanales/mensuales restaban XP en bucle.
-    var since=mission.type==='daily'?'&completed_date=eq.'+today:mission.type==='weekly'?'&completed_date=gte.'+weekStart():'';
-    var compQ='/mission_completions?mission_id=eq.'+id+'&user_id=eq.'+P.id+since;
-    var found=await db(compQ+'&select=id');
-    if(!found.ok||!found.data||!found.data.length){refreshDash();return;}
-    var del=await db(compQ,'DELETE');
-    if(!del.ok){refreshDash();return;}
-    var newXp=Math.max(0,P.xp-mission.xp_value);
-    db('/profiles?id=eq.'+P.id,'PATCH',{xp:newXp});
-    P.xp=newXp;
-    addMonthlyXp(-mission.xp_value);
-  }else{
-    var r=await db('/mission_completions','POST',{mission_id:id,user_id:P.id,completed_date:today});
-    if(!r.ok){
-      // Revert optimistic update on failure
-      allChecks.forEach(function(el){
-        if(el.getAttribute('onclick')&&el.getAttribute('onclick').includes(id)){
-          el.classList.remove('done');
-          var title=el.parentElement&&el.parentElement.querySelector('.mission-title');
-          if(title)title.classList.remove('done-text');
-        }
-      });
-      return;
-    }
-    var oldXp=P.xp,newXp=oldXp+mission.xp_value;
-    var oldLv=getLv(oldXp),newLv=getLv(newXp);
-    var lastActive=P.last_active;
-    var yest=new Date();yest.setDate(yest.getDate()-1);
-    var yStr=localDate(yest);
-    var newStreak=P.streak;
-    if(lastActive!==today){
-      if(lastActive===yStr)newStreak=P.streak+1;
-      else if(!lastActive)newStreak=1;
-      else newStreak=1;
-    }
-    await db('/profiles?id=eq.'+P.id,'PATCH',{xp:newXp,streak:newStreak,last_active:today});
-    P.xp=newXp;P.streak=newStreak;
-    await addMonthlyXp(mission.xp_value);
+  // XP, racha y marcador mensual los calcula el servidor; el navegador ya no los escribe
+  var oldXp=P.xp;
+  var r=await rpc(isDone?'uncomplete_mission':'complete_mission',{p_mission:id});
+  if(!r.ok||!r.data){
+    allChecks.forEach(function(el){
+      if(el.getAttribute('onclick')&&el.getAttribute('onclick').includes(id)){
+        if(isDone)el.classList.add('done');else el.classList.remove('done');
+      }
+    });
+    showNotifToast(rpcErr(r,'No se pudo guardar. Inténtalo de nuevo.'),'level_up');
+    return;
+  }
+  P.xp=r.data.xp;P.streak=r.data.streak;
+  if(!isDone&&r.data.added>0){
+    var oldLv=getLv(oldXp),newLv=getLv(P.xp),newStreak=P.streak;
     if(now.getHours()<6)await unlockAch('night_owl');
     await unlockAch('first_mission');
     if(newStreak>=7)await unlockAch('week_streak');
@@ -1541,7 +1473,7 @@ async function toggleM(id,isDone){
       if((mm.data||[]).filter(function(x){return done.has(x.id);}).length>=3)await unlockAch('momentum');
     }
   }
-  if(!isDone&&Members&&Members.length>0){
+  if(!isDone&&r.data.added>0&&Members&&Members.length>0){
     var mTitle=(mission.private)?'una mision privada':(mission.title||'una mision');
     var oLv=getLv(P.xp-mission.xp_value),nLv=getLv(P.xp);
     for(var ni=0;ni<Members.length;ni++){
@@ -1555,17 +1487,6 @@ async function toggleM(id,isDone){
   // Refresh UI in background — don't await
   refreshDash();
   if(!document.getElementById('page-missions').classList.contains('hidden'))refreshMis();
-}
-
-async function addMonthlyXp(delta){
-  if(!G)return;
-  var period=getCurrentPeriod();
-  var ex=await db('/monthly_xp?group_id=eq.'+G.id+'&user_id=eq.'+P.id+'&period=eq.'+period+'&select=*');
-  if(ex.data&&ex.data.length){
-    await db('/monthly_xp?id=eq.'+ex.data[0].id,'PATCH',{xp:Math.max(0,ex.data[0].xp+delta)});
-  }else if(delta>0){
-    await db('/monthly_xp','POST',{group_id:G.id,user_id:P.id,period:period,xp:delta});
-  }
 }
 
 async function unlockAch(id){
@@ -1602,7 +1523,8 @@ function closeLU(){document.getElementById('lu-overlay').classList.remove('show'
 async function refreshMis(){
   if(!G)return;
   var today=localDate();
-  var mis=await db('/missions?group_id=eq.'+G.id+'&user_id=eq.'+P.id+'&approved_by=not.is.null&select=*');
+  var mis=await db('/missions?group_id=eq.'+G.id+'&user_id=eq.'+P.id+'&approved_by=not.is.null&select='+MIS_COLS);
+  if(mis.data)await withPrivateTitles(mis.data);
   var comps=await db('/mission_completions?user_id=eq.'+P.id+'&select=mission_id,completed_date');
   var doneT=new Set((comps.data||[]).filter(function(c){return c.completed_date===today;}).map(function(c){return c.mission_id;}));
   var doneA=new Set((comps.data||[]).map(function(c){return c.mission_id;}));
@@ -1628,12 +1550,13 @@ function misTab(t){
 async function openEdit(id){
   editId=id;
   // Título y XP se leen de la BD en vez de pasarlos por el onclick (evita inyección vía título)
-  var m=await db('/missions?id=eq.'+id+'&select=title,xp_value,private,private_title');
+  var m=await db('/missions?id=eq.'+id+'&select=id,user_id,title,xp_value,private');
   if(!m.data||!m.data.length)return;
+  await withPrivateTitles(m.data);
   document.getElementById('edit-title').value=m.data[0].title||'';
   document.getElementById('edit-xp').value=m.data[0].xp_value;
-  var isPriv=m.data&&m.data.length&&m.data[0].private;
-  var privTitle=m.data&&m.data.length&&m.data[0].private_title;
+  var isPriv=m.data[0].private;
+  var privTitle=m.data[0].private_title;
   var cb=document.getElementById('edit-private');
   if(cb)cb.checked=!!isPriv;
   // If private, show the real title
@@ -1642,7 +1565,7 @@ async function openEdit(id){
 }
 async function saveEdit(){
   var t=document.getElementById('edit-title').value.trim();
-  var x=parseInt(document.getElementById('edit-xp').value)||100;
+  var x=Math.min(2000,Math.max(0,parseInt(document.getElementById('edit-xp').value)||100)); // límite de la BD
   if(!t)return;
   var isPriv=document.getElementById('edit-private')&&document.getElementById('edit-private').checked;
   await db('/missions?id=eq.'+editId,'PATCH',{
@@ -1658,16 +1581,10 @@ async function saveEdit(){
 async function deleteMission(){
   if(!editId)return;
   if(!confirm('¿Borrar esta misión?'))return;
-  var m=await db('/missions?id=eq.'+editId+'&select=xp_value');
-  var today=localDate();
-  var comp=await db('/mission_completions?mission_id=eq.'+editId+'&user_id=eq.'+P.id+'&completed_date=eq.'+today+'&select=id');
-  if(comp.data&&comp.data.length&&m.data&&m.data.length){
-    var xpLost=m.data[0].xp_value||0;
-    await db('/profiles?id=eq.'+P.id,'PATCH',{xp:Math.max(0,P.xp-xpLost)});
-    P.xp=Math.max(0,P.xp-xpLost);
-  }
-  await db('/mission_completions?mission_id=eq.'+editId,'DELETE');
-  await db('/missions?id=eq.'+editId,'DELETE');
+  // El servidor borra la misión y sus completados, y descuenta el XP si estaba hecha hoy
+  var r=await rpc('delete_mission',{p_mission:editId});
+  if(!r.ok){alert(rpcErr(r,'No se pudo borrar la misión'));return;}
+  if(r.data&&typeof r.data.xp==='number')P.xp=r.data.xp;
   document.getElementById('edit-overlay').classList.remove('show');
   await refreshMis();
   await refreshDash();
