@@ -1,0 +1,14 @@
+# Raíz del proyecto Supabase de NEXUS.
+# Sin este archivo la CLI sube directorios buscando otro config.toml
+# (había uno en C:\Users\pague\supabase con una send-push vacía) y despliega lo que no es.
+project_id = "nexus"
+
+[functions.send-push]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/send-push/index.ts"
+
+[functions.ping]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/ping/index.ts"
