@@ -698,7 +698,7 @@ async function renderS2(){
   var pr=await db('/friendships?receiver_id=eq.'+P.id+'&status=eq.pending&select=*,requester:profiles!requester_id(username)');
   var el=document.getElementById('s2-reqs');
   if(el)el.innerHTML=(pr.data||[]).map(function(f){
-    return '<div class="card-sm" style="margin-bottom:8px;display:flex;align-items:center;justify-content:space-between"><div><div style="font-weight:700">'+f.requester.username+'</div><div style="font-size:12px;color:var(--t2)">quiere ser tu rival</div></div><button class="btn btn-sm btn-primary" onclick="acceptFR(\''+f.id+'\',\''+f.requester_id+'\')">Aceptar</button></div>';
+    return '<div class="card-sm" style="margin-bottom:8px;display:flex;align-items:center;justify-content:space-between"><div><div style="font-weight:700">'+esc(f.requester.username)+'</div><div style="font-size:12px;color:var(--t2)">quiere ser tu rival</div></div><button class="btn btn-sm btn-primary" onclick="acceptFR(\''+f.id+'\',\''+f.requester_id+'\')">Aceptar</button></div>';
   }).join('');
   var acc=await db('/friendships?or=(requester_id.eq.'+P.id+',receiver_id.eq.'+P.id+')&status=eq.accepted&select=*');
   if(acc.data&&acc.data.length){
@@ -784,8 +784,8 @@ function genMissions(goals){
   var daily=[{t:'Dedicar 30 min a '+g,x:80},{t:'Completar una tarea pendiente',x:60},{t:'Aprender algo nuevo (20 min)',x:50}];
   var monthly=[{t:'Alcanzar un hito clave en: '+g,x:400},{t:'Completar un reto de 30 días',x:500},{t:'Mantener racha de 20 días',x:450}];
   var dEl=document.getElementById('s5-daily'),mEl=document.getElementById('s5-monthly');
-  dEl.innerHTML=daily.map(function(m,i){return '<div class="card-sm" style="margin-bottom:8px"><input type="text" value="'+m.t+'" id="dm-'+i+'" style="margin-bottom:6px"><div style="display:flex;align-items:center;gap:8px"><span style="font-size:12px;color:var(--t2)">XP:</span><input type="number" value="'+m.x+'" id="dm-xp-'+i+'" style="width:80px"></div></div>';}).join('');
-  mEl.innerHTML=monthly.map(function(m,i){return '<div class="card-sm" style="margin-bottom:8px"><input type="text" value="'+m.t+'" id="mm-'+i+'" style="margin-bottom:6px"><div style="display:flex;align-items:center;gap:8px"><span style="font-size:12px;color:var(--t2)">XP:</span><input type="number" value="'+m.x+'" id="mm-xp-'+i+'" style="width:80px"></div></div>';}).join('');
+  dEl.innerHTML=daily.map(function(m,i){return '<div class="card-sm" style="margin-bottom:8px"><input type="text" value="'+esc(m.t)+'" id="dm-'+i+'" style="margin-bottom:6px"><div style="display:flex;align-items:center;gap:8px"><span style="font-size:12px;color:var(--t2)">XP:</span><input type="number" value="'+m.x+'" id="dm-xp-'+i+'" style="width:80px"></div></div>';}).join('');
+  mEl.innerHTML=monthly.map(function(m,i){return '<div class="card-sm" style="margin-bottom:8px"><input type="text" value="'+esc(m.t)+'" id="mm-'+i+'" style="margin-bottom:6px"><div style="display:flex;align-items:center;gap:8px"><span style="font-size:12px;color:var(--t2)">XP:</span><input type="number" value="'+m.x+'" id="mm-xp-'+i+'" style="width:80px"></div></div>';}).join('');
 }
 
 async function saveMissions(){
@@ -983,7 +983,6 @@ function renderMis(missions,doneSet,color){
   if(!missions.length)return '<div style="padding:16px;text-align:center;color:var(--t3);font-size:13px">Sin misiones</div>';
   return missions.map(function(m){
     var done=doneSet.has(m.id);
-    var mDisp=(m.private&&m.user_id!==P.id)?'🔒 Misión privada':m.title;
     var isOwn=m.user_id===P.id;
     var showPrivate=m.private&&!isOwn;
     var displayTitle=showPrivate?'🔒 Misión privada':(isOwn&&m.private_title?m.private_title:m.title);
@@ -991,9 +990,9 @@ function renderMis(missions,doneSet,color){
     var html='<div class="card" style="padding:12px"><div style="display:flex;align-items:flex-start;gap:12px">';
     html+='<div class="mission-check '+(done?'done':'')+'" onclick="toggleM(\''+m.id+'\','+done+')">'; 
     html+='<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></div>';
-    html+='<div style="flex:1"><div style="font-size:14px;font-weight:500'+(done?';text-decoration:line-through;color:var(--t3)':'')+'">'+displayTitle+'</div>';
+    html+='<div style="flex:1"><div style="font-size:14px;font-weight:500'+(done?';text-decoration:line-through;color:var(--t3)':'')+'">'+esc(displayTitle)+'</div>';
     html+='<div style="font-size:12px;color:'+color+';margin-top:3px;font-weight:600">⚡ '+displayXp+'</div></div>';
-    html+=isOwn?'<button onclick="openEdit(\''+m.id+'\',\''+((m.private_title||m.title)||'').replace(/'/g,"\\'")+'\','+m.xp_value+')" style="background:none;border:none;color:var(--t3);font-size:16px;cursor:pointer;padding:4px;flex-shrink:0">✏️</button>':'';
+    html+=isOwn?'<button onclick="openEdit(\''+m.id+'\')" style="background:none;border:none;color:var(--t3);font-size:16px;cursor:pointer;padding:4px;flex-shrink:0">✏️</button>':'';
     html+='</div></div>';
     return html;
   }).join('');
@@ -1090,7 +1089,7 @@ function showNotifToast(msg,type){
   var el=document.getElementById('notif-toast');
   if(!el)return;
   var icons={mission_complete:'⚡',xp_overtake:'👑',level_up:'🚀'};
-  el.innerHTML='<span style="margin-right:8px">'+(icons[type]||'🔔')+'</span>'+msg;
+  el.innerHTML='<span style="margin-right:8px">'+(icons[type]||'🔔')+'</span>'+esc(msg);
   el.style.transform='translateY(0)';el.style.opacity='1';
   clearTimeout(window._nt);
   window._nt=setTimeout(function(){el.style.transform='translateY(-80px)';el.style.opacity='0';},4500);
@@ -1176,8 +1175,8 @@ async function uploadAvatar(event){
 
 function renderAvatar(el, profile){
   if(!el)return;
-  if(profile&&profile.avatar_url){
-    el.style.backgroundImage='url('+profile.avatar_url+')';
+  if(profile&&safeImg(profile.avatar_url)){
+    el.style.backgroundImage='url("'+safeImg(profile.avatar_url)+'")';
     el.style.backgroundSize='cover';
     el.style.backgroundPosition='center';
     el.textContent='';
@@ -1309,8 +1308,8 @@ async function openAwardAch(achId){
   var ach=r.data[0];
   _currentAwardAch=ach;
   var iconEl=document.getElementById('award-ach-icon');
-  if(ach.icon_url){
-    iconEl.innerHTML='<img src="'+ach.icon_url+'" style="width:56px;height:56px;border-radius:10px;object-fit:cover">';
+  if(safeImg(ach.icon_url)){
+    iconEl.innerHTML='<img src="'+safeImg(ach.icon_url)+'" style="width:56px;height:56px;border-radius:10px;object-fit:cover">';
   }else{
     iconEl.textContent='🏅';
   }
@@ -1329,8 +1328,8 @@ async function openAwardAch(achId){
     var has=unlockedIds.has(m.id);
     listHtml+='<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:0.5px solid var(--border)">';
     listHtml+='<div style="display:flex;align-items:center;gap:10px">';
-    listHtml+='<div class="avatar avatar-sm avatar-purple" style="width:32px;height:32px;font-size:13px">'+m.username[0].toUpperCase()+'</div>';
-    listHtml+='<div style="font-size:14px;font-weight:600">'+m.username+(m.id===P.id?' (Tú)':'')+'</div>';
+    listHtml+='<div class="avatar avatar-sm avatar-purple" style="width:32px;height:32px;font-size:13px">'+esc(m.username[0].toUpperCase())+'</div>';
+    listHtml+='<div style="font-size:14px;font-weight:600">'+esc(m.username)+(m.id===P.id?' (Tú)':'')+'</div>';
     listHtml+='</div>';
     if(has){
       listHtml+='<span class="badge badge-gold">✓ Obtenido</span>';
@@ -1389,13 +1388,13 @@ async function refreshCustomAch(){
   achs.forEach(function(a){
     var has=myUnlocks.has(a.id);
     gridHtml+='<div class="trophy-card-custom '+(has?'unlocked':'')+'" onclick="openAwardAch('+JSON.stringify(a.id)+')">';
-    if(a.icon_url){
-      gridHtml+='<img src="'+a.icon_url+'" class="trophy-icon-img">';
+    if(safeImg(a.icon_url)){
+      gridHtml+='<img src="'+safeImg(a.icon_url)+'" class="trophy-icon-img">';
     }else{
       gridHtml+='<div class="trophy-icon">🏅</div>';
     }
-    gridHtml+='<div class="trophy-name">'+a.name+'</div>';
-    gridHtml+='<div class="trophy-desc">'+(a.description||'')+'</div>';
+    gridHtml+='<div class="trophy-name">'+esc(a.name)+'</div>';
+    gridHtml+='<div class="trophy-desc">'+esc(a.description)+'</div>';
     if(has){
       gridHtml+='<div class="badge badge-gold" style="margin-top:6px">Obtenido</div>';
     }else{
@@ -1426,8 +1425,8 @@ async function openMemberProfile(userId){
 
   // Render avatar
   var avEl=document.getElementById('mp-avatar');
-  if(member.avatar_url){
-    avEl.style.backgroundImage='url('+member.avatar_url+')';
+  if(safeImg(member.avatar_url)){
+    avEl.style.backgroundImage='url("'+safeImg(member.avatar_url)+'")';
     avEl.style.backgroundSize='cover';
     avEl.style.backgroundPosition='center';
     avEl.textContent='';
@@ -1458,12 +1457,11 @@ async function openMemberProfile(userId){
     if(!missions.length) return '<div style="font-size:12px;color:var(--t3);padding:8px 0">Sin misiones</div>';
     return missions.map(function(m){
       var done=doneSet.has(m.id);
-      var mTitle2=m.private?'🔒 Misión privada':m.title;
       return '<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:0.5px solid var(--border)">'+
         '<div style="width:20px;height:20px;border-radius:5px;border:2px solid '+(done?color:'var(--border)')+';background:'+(done?color:'transparent')+';flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px">'+(done?'✓':'')+'</div>'+
         '<div style="flex:1">'+
-          '<div style="font-size:13px;font-weight:500;'+(done?'text-decoration:line-through;color:var(--t3)':'')+'">'+((m.private&&!isOwner)?'🔒 Misión privada':m.title)+'</div>'+
-          '<div style="font-size:11px;color:'+color+';margin-top:2px">⚡ '+m.xp_value+' XP</div>'+
+          '<div style="font-size:13px;font-weight:500;'+(done?'text-decoration:line-through;color:var(--t3)':'')+'">'+((m.private&&!isOwner)?'🔒 Misión privada':esc(m.title))+'</div>'+
+          '<div style="font-size:11px;color:'+color+';margin-top:2px">⚡ '+esc(m.xp_value)+' XP</div>'+
         '</div>'+
       '</div>';
     }).join('');
@@ -1618,12 +1616,13 @@ function misTab(t){
   document.getElementById('m-monthly').classList.toggle('hidden',t!=='monthly');
 }
 
-async function openEdit(id,title,xp){
+async function openEdit(id){
   editId=id;
-  document.getElementById('edit-title').value=title;
-  document.getElementById('edit-xp').value=xp;
-  // Load private state
-  var m=await db('/missions?id=eq.'+id+'&select=private,private_title');
+  // Título y XP se leen de la BD en vez de pasarlos por el onclick (evita inyección vía título)
+  var m=await db('/missions?id=eq.'+id+'&select=title,xp_value,private,private_title');
+  if(!m.data||!m.data.length)return;
+  document.getElementById('edit-title').value=m.data[0].title||'';
+  document.getElementById('edit-xp').value=m.data[0].xp_value;
   var isPriv=m.data&&m.data.length&&m.data[0].private;
   var privTitle=m.data&&m.data.length&&m.data[0].private_title;
   var cb=document.getElementById('edit-private');
@@ -1681,8 +1680,8 @@ async function refreshGrp(){
   var ranked=allMs.map(function(m){return{name:m.username,xp:xpMap[m.id]||0,isMe:m.id===P.id};}).sort(function(a,b){return b.xp-a.xp;});
   var leader=ranked[0];
   if(ranked.length>1&&leader.xp>0){
-    var leaderLabel=leader.isMe?leader.name+' (Tú)':leader.name;
-    var rankStr=ranked.map(function(r){return r.name.split(' ')[0]+': '+r.xp.toLocaleString()+' XP';}).join(' · ');
+    var leaderLabel=esc(leader.name)+(leader.isMe?' (Tú)':'');
+    var rankStr=ranked.map(function(r){return esc(r.name.split(' ')[0])+': '+r.xp.toLocaleString()+' XP';}).join(' · ');
     var diasStr=diff===1?'1 día':diff+' días';
     var bannerHtml='<div class="monthly-banner">';
     bannerHtml+='<div style="font-size:10px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--t3);margin-bottom:6px">Líder este mes</div>';
@@ -1702,8 +1701,8 @@ async function refreshGrp(){
     var html='<div class="player-card"'+(isMe?'':' onclick="openMemberProfile(\''+m.id+'\')" style="cursor:pointer"')+'>';
     html+='<div class="player-header">';
     html+='<div style="font-size:12px;font-weight:700;color:'+(rank===0?'var(--gold)':'var(--t3)')+';width:18px;flex-shrink:0">#'+(rank+1)+'</div>';
-    html+='<div class="avatar avatar-md '+col+'">'+m.username[0].toUpperCase()+'</div>';
-    html+='<div class="player-info"><div class="player-name">'+m.username+(isMe?' <span style="font-size:11px;color:var(--t3);font-family:var(--font-body)">(Tú)</span>':'')+'</div><div class="player-level">Nivel '+p.lv+' · '+LVL_N[p.lv-1]+'</div></div>';
+    html+='<div class="avatar avatar-md '+col+'">'+esc(m.username[0].toUpperCase())+'</div>';
+    html+='<div class="player-info"><div class="player-name">'+esc(m.username)+(isMe?' <span style="font-size:11px;color:var(--t3);font-family:var(--font-body)">(Tú)</span>':'')+'</div><div class="player-level">Nivel '+p.lv+' · '+LVL_N[p.lv-1]+'</div></div>';
     html+='<div class="player-xp">'+m.xp.toLocaleString()+'</div></div>';
     html+='<div class="xp-bar-wrap"><div class="xp-bar-fill '+(isMe?'':'xp-bar-gold')+'" style="width:'+Math.round(m.xp/maxXp*100)+'%"></div></div>';
     html+='</div>';
@@ -1716,7 +1715,7 @@ async function refreshGrp(){
   }
   var wi=await db('/wheel_items?group_id=eq.'+G.id+'&select=*');
   document.getElementById('wh-items').innerHTML=(wi.data||[]).map(function(i){
-    return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="flex:1;font-size:13px">🎯 '+i.text+'</span><button onclick="removeWI(\''+i.id+'\')" style="background:none;border:none;color:var(--t3);cursor:pointer;font-size:18px">×</button></div>';
+    return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="flex:1;font-size:13px">🎯 '+esc(i.text)+'</span><button onclick="removeWI(\''+i.id+'\')" style="background:none;border:none;color:var(--t3);cursor:pointer;font-size:18px">×</button></div>';
   }).join('')||'<div style="font-size:12px;color:var(--t3)">Sin castigos aún</div>';
   var hist=await db('/monthly_results?group_id=eq.'+G.id+'&order=period.desc&limit=6&select=*');
   var histEl=document.getElementById('g-history');
@@ -1807,7 +1806,7 @@ async function openGrpSwitcher(){
   var el=document.getElementById('gs-list');
   el.innerHTML=AllGroups.map(function(g){
     var active=G&&G.id===g.id;
-    return '<div onclick="switchGroup(\''+g.id+'\')" style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:0.5px solid var(--border);cursor:pointer;background:'+(active?'var(--pdim)':'transparent')+'">'+'<div><div style="font-weight:600;font-size:14px;font-family:var(--font-display)">'+g.name+'</div><div style="font-size:12px;color:var(--t2);margin-top:2px">'+(active?'Grupo activo':'Toca para cambiar')+'</div></div>'+(active?'<div style="width:8px;height:8px;border-radius:50%;background:var(--purple3)"></div>':'')+'</div>';
+    return '<div onclick="switchGroup(\''+g.id+'\')" style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:0.5px solid var(--border);cursor:pointer;background:'+(active?'var(--pdim)':'transparent')+'">'+'<div><div style="font-weight:600;font-size:14px;font-family:var(--font-display)">'+esc(g.name)+'</div><div style="font-size:12px;color:var(--t2);margin-top:2px">'+(active?'Grupo activo':'Toca para cambiar')+'</div></div>'+(active?'<div style="width:8px;height:8px;border-radius:50%;background:var(--purple3)"></div>':'')+'</div>';
   }).join('')+'<div onclick="createNewGroup()" style="display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;color:var(--purple3)"><div style="width:36px;height:36px;border-radius:50%;background:var(--pdim);display:flex;align-items:center;justify-content:center;font-size:20px">+</div><div style="font-weight:600;font-size:14px;font-family:var(--font-display)">Crear nuevo grupo</div></div>';
   document.getElementById('gs-overlay').classList.add('show');
 }
