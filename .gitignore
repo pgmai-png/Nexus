@@ -1,0 +1,12 @@
+# Secretos (claves VAPID, service role…): nunca en el repo, que es público
+.env
+.env.*
+supabase/.env*
+supabase/.temp/
+
+# Local
+.claude/skills/
+.claude/settings.local.json
+node_modules/
+.DS_Store
+Thumbs.db
