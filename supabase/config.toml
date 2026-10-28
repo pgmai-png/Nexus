@@ -7,8 +7,3 @@ project_id = "nexus"
 enabled = true
 verify_jwt = true
 entrypoint = "./functions/send-push/index.ts"
-
-[functions.ping]
-enabled = true
-verify_jwt = false
-entrypoint = "./functions/ping/index.ts"
