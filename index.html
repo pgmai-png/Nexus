@@ -15,7 +15,7 @@
 <title>NEXUS</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=r3">
+<link rel="stylesheet" href="styles.css?v=s1">
 </head>
 <body>
 
@@ -156,6 +156,8 @@
       <div id="d-weekly"></div>
       <div class="section-label">MISIONES MENSUALES</div>
       <div id="d-monthly"></div>
+      <div class="section-label">ACTIVIDAD DEL GRUPO</div>
+      <div id="d-feed"></div>
     </div>
 
     <!-- MISSIONS -->
@@ -242,6 +244,22 @@
       <div class="card" style="padding:12px">
         <div class="friend-code" id="p-code" style="font-size:22px;padding:14px">——</div>
         <button class="btn btn-secondary" style="margin-top:10px" onclick="copyCode()">Copiar código</button>
+      </div>
+      <div class="section-label">COMODÍN DE RACHA</div>
+      <div class="card">
+        <div class="wallet-row">
+          <div><div class="wallet-coins"><span class="mono" id="w-coins">—</span> monedas</div>
+          <div class="wallet-sub">Si un día no cumples, un comodín mantiene tu racha. Puedes tener 2.</div></div>
+          <div class="freeze-count mono" id="w-freezes">0/2</div>
+        </div>
+        <button class="btn btn-primary" id="w-buy" onclick="buyFreeze()">Comprar comodín · 150</button>
+        <div class="wallet-sub" style="margin-top:10px">Monedas: 5 por misión, 40 por nivel, 25 por logro y 100 si ganas el mes.</div>
+      </div>
+      <div class="section-label">RECORDATORIO DIARIO</div>
+      <div class="card">
+        <label for="rem-hour">Avisarme si me quedan misiones a las</label>
+        <select id="rem-hour" onchange="saveReminder()"><option value="">Nunca</option><option value="7">7:00</option><option value="8">8:00</option><option value="9">9:00</option><option value="10">10:00</option><option value="11">11:00</option><option value="12">12:00</option><option value="13">13:00</option><option value="14">14:00</option><option value="15">15:00</option><option value="16">16:00</option><option value="17">17:00</option><option value="18">18:00</option><option value="19">19:00</option><option value="20">20:00</option><option value="21">21:00</option><option value="22">22:00</option><option value="23">23:00</option></select>
+        <div class="wallet-sub" id="rem-note" style="margin-top:8px"></div>
       </div>
       <div class="section-label">ESTADÍSTICAS</div>
       <div class="card">
@@ -346,7 +364,7 @@
 <!-- JOIN TOAST -->
 <div id="join-toast" style="position:fixed;top:max(16px,env(safe-area-inset-top));left:16px;right:16px;background:var(--gdim2);border:0.5px solid rgba(16,185,129,0.3);border-radius:var(--r);padding:14px 16px;z-index:600;text-align:center;font-size:13px;font-weight:600;color:var(--green);transform:translateY(-120px);transition:transform 0.4s cubic-bezier(0.34,1.2,0.64,1)"></div>
 
-<script src="app.js?v=r3"></script>
+<script src="app.js?v=s1"></script>
 
 <div id="notif-toast"></div>
 

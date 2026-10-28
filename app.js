@@ -310,6 +310,7 @@ async function showApp(){hideLo();
   document.getElementById('app').classList.remove('hidden');
   await loadUA();
   await checkMonthlyClose();
+  await loadWallet();
   await refreshDash();
   // Un solo temporizador aunque se cierre e inicie sesión varias veces
   clearInterval(window._dashTimer);
@@ -387,7 +388,8 @@ async function refreshDash(){
   document.getElementById('d-xp').innerHTML=P.xp.toLocaleString('es-ES')+'<small>xp</small>';
   document.getElementById('d-xp-bar').style.width=prog.pct+'%';
   document.getElementById('d-xp-next').textContent=prog.needed.toLocaleString('es-ES')+' para nivel '+(prog.lv+1);
-  document.getElementById('d-streak').innerHTML='racha <b>'+P.streak+'</b> '+(P.streak===1?'día':'días');
+  document.getElementById('d-streak').innerHTML='racha <b>'+P.streak+'</b> '+(P.streak===1?'día':'días')+
+    (WALLET&&WALLET.freezes?' · '+WALLET.freezes+(WALLET.freezes===1?' comodín':' comodines'):'');
 
   // Show join/create group card when no group
   // Sin grupo no hay misiones: se ocultan sus títulos vacíos
@@ -433,6 +435,7 @@ async function refreshDash(){
     var wEl=document.getElementById('d-weekly');
     if(wEl)wEl.innerHTML=renderMis(weekly,wkDone,'#10B981');
     document.getElementById('d-monthly').innerHTML=renderMis(monthly,doneA,'var(--gold)');
+    refreshFeed();
   }
 }
 
@@ -954,6 +957,10 @@ async function toggleM(id,isDone){
     return;
   }
   P.xp=r.data.xp;P.streak=r.data.streak;
+  if(r.data.freezes_used>0){
+    if(WALLET)WALLET.freezes=r.data.freezes;
+    showNotifToast((r.data.freezes_used===1?'Un comodín':'Dos comodines')+' han salvado tu racha de '+P.streak+' días','level_up');
+  }
   if(!isDone&&r.data.added>0){
     var oldLv=getLv(oldXp),newLv=getLv(P.xp),newStreak=P.streak;
     if(now.getHours()<6)await unlockAch('night_owl');
@@ -1268,6 +1275,101 @@ async function refreshTr(){
   await refreshCustomAch();
 }
 
+// ─── Monedas, comodín de racha y recordatorio ─────────────────────────────────
+var WALLET=null;
+async function loadWallet(){
+  var r=await rpc('my_wallet');
+  if(!r.ok||!r.data)return;
+  WALLET=r.data;
+  var c=document.getElementById('w-coins');if(c)c.textContent=WALLET.coins.toLocaleString('es-ES');
+  var f=document.getElementById('w-freezes');if(f)f.textContent=WALLET.freezes+'/2';
+  var b=document.getElementById('w-buy');
+  if(b){
+    var full=WALLET.freezes>=2,poor=WALLET.coins<150;
+    b.disabled=full||poor;
+    b.textContent=full?'Tienes el máximo':poor?'Te faltan '+(150-WALLET.coins)+' monedas':'Comprar comodín · 150';
+  }
+  var sel=document.getElementById('rem-hour');if(sel)sel.value=WALLET.reminder_hour==null?'':String(WALLET.reminder_hour);
+  updateReminderNote();
+}
+async function buyFreeze(){
+  var b=document.getElementById('w-buy');b.disabled=true;
+  var r=await rpc('buy_streak_freeze');
+  if(!r.ok){showNotifToast(rpcErr(r,'No se pudo comprar'),'level_up');await loadWallet();return;}
+  showNotifToast('Comodín comprado. Tienes '+r.data.freezes+' de 2','level_up');
+  await loadWallet();
+}
+function updateReminderNote(){
+  var n=document.getElementById('rem-note');if(!n)return;
+  var on=document.getElementById('rem-hour').value!=='';
+  var granted=typeof Notification!=='undefined'&&Notification.permission==='granted';
+  n.textContent=!on?'Sin recordatorio.':granted?'Solo te avisa si ese día aún te quedan misiones.':'Activa las notificaciones (abajo) para recibirlo.';
+}
+async function saveReminder(){
+  var v=document.getElementById('rem-hour').value;
+  var r=await db('/profiles?id=eq.'+P.id,'PATCH',{reminder_hour:v===''?null:parseInt(v,10)});
+  if(!r.ok){showNotifToast('No se pudo guardar la hora','level_up');return;}
+  if(v!==''&&typeof Notification!=='undefined'&&Notification.permission!=='granted')await enableNotifications();
+  updateReminderNote();
+  showNotifToast(v===''?'Recordatorio desactivado':'Te avisaremos a las '+v+':00 si te quedan misiones','level_up');
+}
+
+// ─── Actividad del grupo con reacciones ──────────────────────────────────────
+var REACTS=[['fire','🔥'],['clap','👏'],['muscle','💪']];
+function timeAgo(iso){
+  var m=Math.round((Date.now()-new Date(iso).getTime())/60000);
+  if(m<1)return'ahora';if(m<60)return'hace '+m+' min';
+  var h=Math.round(m/60);if(h<24)return'hace '+h+' h';
+  var d=Math.round(h/24);return d===1?'ayer':'hace '+d+' días';
+}
+async function refreshFeed(){
+  var el=document.getElementById('d-feed');if(!el)return;
+  if(!G){el.innerHTML='';return;}
+  var people={};[P].concat(Members||[]).forEach(function(m){people[m.id]=m;});
+  var ids=Object.keys(people);
+  var since=new Date(Date.now()-3*864e5).toISOString();
+  var c=await db('/mission_completions?user_id=in.('+ids.join(',')+')&completed_at=gte.'+since+'&select=id,user_id,mission_id,completed_at&order=completed_at.desc&limit=40');
+  var comps=c.data||[];
+  var mids=comps.map(function(x){return x.mission_id;}).filter(function(v,i,a){return a.indexOf(v)===i;});
+  var mm={};
+  if(mids.length){
+    var ms=await db('/missions?id=in.('+mids.join(',')+')&group_id=eq.'+G.id+'&select=id,title,private,xp_value');
+    (ms.data||[]).forEach(function(m){mm[m.id]=m;});
+  }
+  comps=comps.filter(function(x){return mm[x.mission_id];}).slice(0,12);
+  if(!comps.length){el.innerHTML='<div class="empty">Nadie ha completado nada estos días. Sé el primero.</div>';return;}
+  var rx=await db('/reactions?completion_id=in.('+comps.map(function(x){return x.id;}).join(',')+')&select=completion_id,user_id,emoji');
+  var byC={};(rx.data||[]).forEach(function(r){(byC[r.completion_id]=byC[r.completion_id]||[]).push(r);});
+  el.innerHTML='<div class="stagger">'+comps.map(function(x){
+    var who=people[x.user_id]||{username:'?'},mine=x.user_id===P.id,m=mm[x.mission_id];
+    var title=m.private?'una misión privada':'«'+esc(m.title)+'»';
+    var list=byC[x.id]||[];
+    var btns=REACTS.map(function(r){
+      var n=list.filter(function(y){return y.emoji===r[0];}).length;
+      var on=list.some(function(y){return y.emoji===r[0]&&y.user_id===P.id;});
+      if(mine&&!n)return'';
+      return '<button class="react'+(on?' on':'')+'"'+(mine?' disabled':' onclick="toggleReaction(this,\''+x.id+'\',\''+r[0]+'\',\''+x.user_id+'\','+(on?1:0)+')"')+
+        ' aria-label="Reaccionar '+r[1]+'">'+r[1]+(n?' '+n:'')+'</button>';
+    }).join('');
+    return '<div class="feed-item"><div class="avatar avatar-sm '+(mine?'avatar-purple':'avatar-gold')+'">'+esc(who.username[0].toUpperCase())+'</div>'+
+      '<div class="feed-body"><div class="feed-text"><b>'+(mine?'Tú':esc(who.username))+'</b> '+(mine?'completaste':'completó')+' '+title+'</div>'+
+      '<div class="feed-meta">'+timeAgo(x.completed_at)+' · +'+esc(m.xp_value)+' xp</div>'+
+      (btns?'<div class="reacts">'+btns+'</div>':'')+'</div></div>';
+  }).join('')+'</div>';
+}
+async function toggleReaction(btn,cid,emoji,ownerId,isOn){
+  btn.disabled=true;
+  var r=isOn?await db('/reactions?completion_id=eq.'+cid+'&user_id=eq.'+P.id+'&emoji=eq.'+emoji,'DELETE')
+            :await db('/reactions','POST',{completion_id:cid,user_id:P.id,emoji:emoji});
+  if(!r.ok){btn.disabled=false;showNotifToast('No se pudo reaccionar','level_up');return;}
+  if(!isOn){
+    btn.classList.add('pop');
+    var e=REACTS.filter(function(x){return x[0]===emoji;})[0][1];
+    sendNotif(ownerId,'reaction',P.username+' ha reaccionado '+e+' a lo que completaste');
+  }
+  refreshFeed();
+}
+
 async function refreshProf(){
   var pr=await db('/profiles?id=eq.'+P.id+'&select=*');
   if(pr.data&&pr.data.length)P=pr.data[0];
@@ -1281,6 +1383,7 @@ async function refreshProf(){
   document.getElementById('st-str').textContent=P.streak+(P.streak===1?' día':' días');
   var mc=await db('/mission_completions?user_id=eq.'+P.id+'&select=id');
   document.getElementById('st-mis').textContent=mc.data?mc.data.length:0;
+  loadWallet();
 }
 
 function copyCode(){

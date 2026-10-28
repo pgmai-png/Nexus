@@ -8,7 +8,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 import webpush from "npm:web-push@3.6.7";
 
-const TYPES = new Set(["mission_complete", "xp_overtake", "level_up"]);
+const TYPES = new Set(["mission_complete", "xp_overtake", "level_up", "reaction"]);
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const CORS = {
   "Access-Control-Allow-Origin": "https://pgmai-png.github.io",

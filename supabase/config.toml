@@ -7,3 +7,9 @@ project_id = "nexus"
 enabled = true
 verify_jwt = true
 entrypoint = "./functions/send-push/index.ts"
+
+# La llama el cron de GitHub con x-cron-secret, sin sesión de usuario
+[functions.daily-reminder]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/daily-reminder/index.ts"

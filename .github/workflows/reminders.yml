@@ -1,0 +1,21 @@
+# Llama cada hora a la función daily-reminder, que avisa a quien eligió esa hora
+# (hora de España) y aún tiene misiones pendientes.
+name: Recordatorios diarios
+
+on:
+  schedule:
+    - cron: "2 * * * *"
+  workflow_dispatch:
+
+jobs:
+  remind:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Llamar a daily-reminder
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          res=$(curl -s -w '\n%{http_code}' -X POST -H "x-cron-secret: $CRON_SECRET" \
+            "https://wusqkenwwxaglpifrhtf.supabase.co/functions/v1/daily-reminder")
+          echo "$res"
+          test "$(echo "$res" | tail -1)" = "200"
