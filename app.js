@@ -346,7 +346,7 @@ async function checkMonthlyClose(){
     var punishment=null;
     if(wi.length>0){punishment=wi[Math.floor(Math.random()*wi.length)].text;}
     // Show results screen
-    document.getElementById('mr-emoji').textContent=won?'🏆':'😅';
+    document.getElementById('mr-emoji').textContent=won?'1º':'—';
     document.getElementById('mr-title').textContent=won?'¡Ganaste el mes!':'Este mes ganó otro';
     document.getElementById('mr-sub').textContent='Periodo: '+stored;
     if(punishment){
@@ -377,26 +377,28 @@ async function refreshDash(){
   var pr=await db('/profiles?id=eq.'+P.id+'&select='+PROF_COLS);
   if(pr.data&&pr.data.length)Object.assign(P,pr.data[0]); // conserva avatar_url ya cargado
   var h=new Date().getHours();
-  var g=h<12?'¡Buenos días':h<18?'¡Buenas tardes':'¡Buenas noches';
-  document.getElementById('d-greeting').textContent=g+', '+P.username+'!';
-  document.getElementById('d-date').textContent=new Date().toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'});
+  var g=h<6?'Buenas noches':h<14?'Buenos días':h<21?'Buenas tardes':'Buenas noches';
+  document.getElementById('d-greeting').textContent=g+', '+P.username;
+  var dateStr=new Date().toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'});
+  document.getElementById('d-date').textContent=dateStr.charAt(0).toUpperCase()+dateStr.slice(1);
   var prog=getProg(P.xp);
   document.getElementById('d-level').textContent=prog.lv;
-  document.getElementById('d-xp').textContent=P.xp.toLocaleString()+' XP';
+  var lvName=document.getElementById('d-level-name');if(lvName)lvName.textContent=LVL_N[prog.lv-1]||'';
+  document.getElementById('d-xp').innerHTML=P.xp.toLocaleString('es-ES')+'<small>xp</small>';
   document.getElementById('d-xp-bar').style.width=prog.pct+'%';
-  document.getElementById('d-xp-next').textContent=prog.needed.toLocaleString()+' XP para nivel '+(prog.lv+1);
-  document.getElementById('d-streak').textContent='🔥 '+P.streak+' días';
+  document.getElementById('d-xp-next').textContent=prog.needed.toLocaleString('es-ES')+' para nivel '+(prog.lv+1);
+  document.getElementById('d-streak').innerHTML='racha <b>'+P.streak+'</b> '+(P.streak===1?'día':'días');
 
   // Show join/create group card when no group
   var joinEl=document.getElementById('d-join-group');
   if(joinEl){
     if(!G){
       joinEl.style.display='block';
-      joinEl.innerHTML='<div class="card" style="margin-bottom:4px;background:var(--purple-dim);border-color:var(--purple)">'+
-        '<div style="font-size:15px;font-weight:700;margin-bottom:6px">Sin grupo activo</div>'+
-        '<div style="font-size:13px;color:var(--t2);margin-bottom:14px">Crea un grupo o únete a uno para competir con tus rivales.</div>'+
+      joinEl.innerHTML='<div class="card" style="padding:20px 18px">'+
+        '<div style="font-size:18px;font-weight:700;letter-spacing:-0.02em;margin-bottom:6px">Todavía no compites con nadie</div>'+
+        '<div style="font-size:14px;color:var(--t2);margin-bottom:16px;line-height:1.5">Crea un grupo y pásale tu código a quien quieras retar, o únete al de un amigo.</div>'+
         '<div style="display:flex;gap:8px">'+
-        '<button onclick="openCreateGroupModal()" class="btn btn-primary btn-sm" style="flex:1">+ Crear grupo</button>'+
+        '<button onclick="openCreateGroupModal()" class="btn btn-primary btn-sm" style="flex:1">Crear grupo</button>'+
         '<button onclick="openJoinGroupModal()" class="btn btn-secondary btn-sm" style="flex:1">Unirse</button>'+
         '</div></div>';
     }else{
@@ -418,8 +420,9 @@ async function refreshDash(){
     var dayProg=document.getElementById('d-day-prog');
     if(daily.length>0){
       dayProg.style.display='flex';
-      document.getElementById('d-prog-text').textContent=todayDone+' de '+daily.length+' misiones hoy';
-      document.getElementById('d-prog-xp').textContent=todayXp+' XP';
+      document.getElementById('d-prog-text').innerHTML='<b>'+todayDone+' de '+daily.length+'</b> hechas hoy';
+      document.getElementById('d-prog-xp').textContent='+'+todayXp+' xp';
+      document.getElementById('d-prog-segs').innerHTML=daily.map(function(m){return '<span class="dp-seg'+(doneT.has(m.id)?' on':'')+'"></span>';}).join('');
     }else{dayProg.style.display='none';}
     document.getElementById('d-daily').innerHTML=renderMis(daily,doneT,'var(--purple3)');
     var weekly=(mis.data||[]).filter(function(m){return m.type==='weekly';});
@@ -432,22 +435,21 @@ async function refreshDash(){
 }
 
 function renderMis(missions,doneSet,color){
-  if(!missions.length)return '<div style="padding:16px;text-align:center;color:var(--t3);font-size:13px">Sin misiones</div>';
-  return missions.map(function(m){
+  if(!missions.length)return '<div class="empty">Nada por aquí. Añade una desde Misiones.</div>';
+  return '<div class="stagger">'+missions.map(function(m){
     var done=doneSet.has(m.id);
     var isOwn=m.user_id===P.id;
     var showPrivate=m.private&&!isOwn;
-    var displayTitle=showPrivate?'🔒 Misión privada':(isOwn&&m.private_title?m.private_title:m.title);
-    var displayXp=showPrivate?'🔒':m.xp_value+' XP';
-    var html='<div class="card" style="padding:12px"><div style="display:flex;align-items:flex-start;gap:12px">';
-    html+='<div class="mission-check '+(done?'done':'')+'" onclick="toggleM(\''+m.id+'\','+done+')">'; 
-    html+='<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></div>';
-    html+='<div style="flex:1"><div style="font-size:14px;font-weight:500'+(done?';text-decoration:line-through;color:var(--t3)':'')+'">'+esc(displayTitle)+'</div>';
-    html+='<div style="font-size:12px;color:'+color+';margin-top:3px;font-weight:600">⚡ '+displayXp+'</div></div>';
-    html+=isOwn?'<button onclick="openEdit(\''+m.id+'\')" style="background:none;border:none;color:var(--t3);font-size:16px;cursor:pointer;padding:4px;flex-shrink:0">✏️</button>':'';
-    html+='</div></div>';
+    var displayTitle=showPrivate?'Misión privada':(isOwn&&m.private_title?m.private_title:m.title);
+    var html='<div class="mission'+(done?' done':'')+'">';
+    html+='<button class="mission-check '+(done?'done':'')+'" aria-label="'+(done?'Desmarcar':'Marcar como hecha')+'" onclick="toggleM(\''+m.id+'\','+done+')">';
+    html+='<svg viewBox="0 0 24 24" fill="none" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></button>';
+    html+='<div class="mission-body"><div class="mission-title'+(done?' done-text':'')+'">'+esc(displayTitle)+'</div>';
+    html+='<div class="mission-meta"><span class="xp">+'+esc(m.xp_value)+' xp</span>'+(m.private?'<span>privada</span>':'')+'</div></div>';
+    html+=isOwn?'<button class="mission-edit" aria-label="Editar misión" onclick="openEdit(\''+m.id+'\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg></button>':'';
+    html+='</div>';
     return html;
-  }).join('');
+  }).join('')+'</div>';
 }
 
 
@@ -508,14 +510,14 @@ function updateNotifBtn(){
   if(!btn)return;
   if(typeof Notification==='undefined'){btn.style.display='none';return;}
   if(Notification.permission==='granted'){
-    btn.textContent='🔔 Notificaciones activadas';
+    btn.textContent='Notificaciones activadas';
     btn.style.background='var(--green-dim)';
     btn.style.color='var(--green)';
     btn.style.borderColor='var(--green)';
     btn.onclick=null;
     btn.style.opacity='0.7';
   }else{
-    btn.textContent='🔔 Activar notificaciones';
+    btn.textContent='Activar notificaciones';
     btn.onclick=enableNotifications;
   }
 }
@@ -546,8 +548,8 @@ async function checkIncomingNotifs(){
 function showNotifToast(msg,type){
   var el=document.getElementById('notif-toast');
   if(!el)return;
-  var icons={mission_complete:'⚡',xp_overtake:'👑',level_up:'🚀'};
-  el.innerHTML='<span style="margin-right:8px">'+(icons[type]||'🔔')+'</span>'+esc(msg);
+  // Marca de color en vez de emoji; el texto ya dice qué ha pasado
+  el.innerHTML='<span style="width:8px;height:8px;border-radius:2px;background:var(--accent);margin-right:12px;flex-shrink:0"></span>'+esc(msg);
   el.style.transform='translateY(0)';el.style.opacity='1';
   clearTimeout(window._nt);
   window._nt=setTimeout(function(){el.style.transform='translateY(-80px)';el.style.opacity='0';},4500);
@@ -765,7 +767,7 @@ async function openAwardAch(achId){
   if(safeImg(ach.icon_url)){
     iconEl.innerHTML='<img src="'+safeImg(ach.icon_url)+'" style="width:56px;height:56px;border-radius:10px;object-fit:cover">';
   }else{
-    iconEl.textContent='🏅';
+    iconEl.textContent='★';
   }
   document.getElementById('award-ach-name').textContent=ach.name;
   document.getElementById('award-ach-desc').textContent=ach.description||'';
@@ -786,7 +788,7 @@ async function openAwardAch(achId){
     listHtml+='<div style="font-size:14px;font-weight:600">'+esc(m.username)+(m.id===P.id?' (Tú)':'')+'</div>';
     listHtml+='</div>';
     if(has){
-      listHtml+='<span class="badge badge-gold">✓ Obtenido</span>';
+      listHtml+='<span class="badge badge-gold">lo tiene</span>';
     }else{
       listHtml+='<button data-acid="'+achId+'" data-uid="'+m.id+'" data-uname="'+encodeURIComponent(m.username)+'" onclick="awardAchToBtn(this)" class="btn btn-sm btn-secondary" style="font-size:12px">Otorgar</button>';
     }
@@ -813,7 +815,7 @@ async function awardAchTo(achId, userId, username){
     return;
   }
   if(_currentAwardAch&&_currentAwardAch.xp_bonus>0&&userId!==P.id){
-    await sendNotif(userId,'level_up','🏅 Obtuviste el logro "'+(_currentAwardAch.name)+'"'+(+_currentAwardAch.xp_bonus>0?' (+'+_currentAwardAch.xp_bonus+' XP)':''));
+    await sendNotif(userId,'level_up','Te han dado el logro "'+(_currentAwardAch.name)+'"'+(+_currentAwardAch.xp_bonus>0?' (+'+_currentAwardAch.xp_bonus+' XP)':''));
   }
   showNotifToast('Logro otorgado a '+username,'level_up');
   // Refresh award modal
@@ -840,16 +842,16 @@ async function refreshCustomAch(){
     if(safeImg(a.icon_url)){
       gridHtml+='<img src="'+safeImg(a.icon_url)+'" class="trophy-icon-img">';
     }else{
-      gridHtml+='<div class="trophy-icon">🏅</div>';
+      gridHtml+='<div class="trophy-icon" style="color:var(--accent)">★</div>';
     }
     gridHtml+='<div class="trophy-name">'+esc(a.name)+'</div>';
     gridHtml+='<div class="trophy-desc">'+esc(a.description)+'</div>';
     if(has){
-      gridHtml+='<div class="badge badge-gold" style="margin-top:6px">Obtenido</div>';
+      gridHtml+='<div class="badge badge-gold">tuyo</div>';
     }else{
-      gridHtml+='<div style="font-size:10px;color:var(--t3);margin-top:4px">Toca para otorgar</div>';
+      gridHtml+='<div style="font-size:12px;color:var(--t3);margin-top:8px">Toca para darlo</div>';
     }
-    if(a.xp_bonus>0)gridHtml+='<div style="font-size:10px;color:var(--gold);margin-top:2px">+'+a.xp_bonus+' XP</div>';
+    if(a.xp_bonus>0)gridHtml+='<div class="mono" style="font-size:12px;color:var(--accent);margin-top:4px">+'+a.xp_bonus+' xp</div>';
     gridHtml+='</div>';
   });
   gridEl.innerHTML=gridHtml;
@@ -885,8 +887,8 @@ async function openMemberProfile(userId){
   }
   document.getElementById('mp-name').textContent=member.username;
   document.getElementById('mp-level').textContent='Nivel '+prog.lv+' · '+LVL_N[prog.lv-1];
-  document.getElementById('mp-xp').textContent=member.xp.toLocaleString()+' XP';
-  document.getElementById('mp-streak').textContent=member.streak+' 🔥';
+  document.getElementById('mp-xp').textContent=member.xp.toLocaleString('es-ES')+' xp';
+  document.getElementById('mp-streak').textContent=member.streak+' d';
 
   if(!G)return;
   // Load their missions
@@ -909,8 +911,8 @@ async function openMemberProfile(userId){
       return '<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:0.5px solid var(--border)">'+
         '<div style="width:20px;height:20px;border-radius:5px;border:2px solid '+(done?color:'var(--border)')+';background:'+(done?color:'transparent')+';flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px">'+(done?'✓':'')+'</div>'+
         '<div style="flex:1">'+
-          '<div style="font-size:13px;font-weight:500;'+(done?'text-decoration:line-through;color:var(--t3)':'')+'">'+((m.private&&!isOwner)?'🔒 Misión privada':esc(m.title))+'</div>'+
-          '<div style="font-size:11px;color:'+color+';margin-top:2px">⚡ '+esc(m.xp_value)+' XP</div>'+
+          '<div style="font-size:13px;font-weight:500;'+(done?'text-decoration:line-through;color:var(--t3)':'')+'">'+((m.private&&!isOwner)?'Misión privada':esc(m.title))+'</div>'+
+          '<div class="mono" style="font-size:12px;color:var(--t3);margin-top:2px">+'+esc(m.xp_value)+' xp</div>'+
         '</div>'+
       '</div>';
     }).join('');
@@ -997,10 +999,10 @@ async function unlockAch(id){
 
 function showLU(lv){
   document.getElementById('lu-num').textContent=lv;
-  document.getElementById('lu-title').textContent=(LVL_N[lv-1]||'INCREÍBLE').toUpperCase();
+  document.getElementById('lu-title').textContent=LVL_N[lv-1]||'Nivel '+lv;
   document.getElementById('lu-sub').textContent='Has alcanzado el nivel '+lv;
   var c=document.getElementById('lu-particles');c.innerHTML='';
-  var cols=['#7C3AED','#A78BFA','#F59E0B','#10B981','#fff'];
+  var cols=['#CBEA5B','#CBEA5B','#EFEDE4','#6B695F'];
   for(var i=0;i<30;i++){
     var p=document.createElement('div');p.className='particle';
     p.style.cssText='left:'+Math.random()*100+'%;background:'+cols[Math.floor(Math.random()*cols.length)]+';animation-delay:'+Math.random()*1.5+'s;animation-duration:'+(1.5+Math.random())+'s';
@@ -1093,37 +1095,34 @@ async function refreshGrp(){
   var allMs=[P].concat(Members);
   var xpMap={};
   (mxp.data||[]).forEach(function(x){xpMap[x.user_id]=x.xp;});
-  var ranked=allMs.map(function(m){return{name:m.username,xp:xpMap[m.id]||0,isMe:m.id===P.id};}).sort(function(a,b){return b.xp-a.xp;});
+  // La clasificación es la del mes (lo que decide quién gana); el XP total va como contexto
+  var ranked=allMs.map(function(m){return{id:m.id,name:m.username,xp:xpMap[m.id]||0,total:m.xp,isMe:m.id===P.id};})
+    .sort(function(a,b){return b.xp-a.xp||b.total-a.total;});
   var leader=ranked[0];
+  var bannerHtml='<div class="monthly-banner">';
   if(ranked.length>1&&leader.xp>0){
-    var leaderLabel=esc(leader.name)+(leader.isMe?' (Tú)':'');
-    var rankStr=ranked.map(function(r){return esc(r.name.split(' ')[0])+': '+r.xp.toLocaleString()+' XP';}).join(' · ');
-    var diasStr=diff===1?'1 día':diff+' días';
-    var bannerHtml='<div class="monthly-banner">';
-    bannerHtml+='<div style="font-size:10px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--t3);margin-bottom:6px">Líder este mes</div>';
-    bannerHtml+='<div style="font-size:22px;font-weight:700;font-family:var(--font-display);color:var(--gold)">👑 '+leaderLabel+'</div>';
-    bannerHtml+='<div style="font-size:12px;color:var(--t2);margin-top:4px">'+rankStr+'</div>';
-    bannerHtml+='<div style="font-size:11px;color:var(--t3);margin-top:6px">Se reinicia en '+diasStr+'</div>';
-    bannerHtml+='</div>';
-    document.getElementById('g-banner').innerHTML=bannerHtml;
+    var gap=leader.xp-ranked[1].xp;
+    bannerHtml+='<div class="sb-label">Va primero este mes</div>';
+    bannerHtml+='<div style="font-size:34px;font-weight:700;letter-spacing:-0.05em;line-height:1.05;margin:8px 0 6px">'+(leader.isMe?'Tú':esc(leader.name))+'</div>';
+    bannerHtml+='<div style="font-size:14px;color:var(--t2)">'+(gap>0?'Con <span class="mono" style="color:var(--accent)">'+gap.toLocaleString('es-ES')+'</span> xp de ventaja':'Empate en cabeza')+'</div>';
   }else{
-    document.getElementById('g-banner').innerHTML='<div class="monthly-banner"><div style="font-size:14px;color:var(--t2)">Sin puntos aún este mes — ¡a por ello!</div></div>';
+    bannerHtml+='<div class="sb-label">Mes recién empezado</div>';
+    bannerHtml+='<div style="font-size:22px;font-weight:700;letter-spacing:-0.03em;margin-top:8px">Nadie ha puntuado todavía</div>';
   }
-  var maxXp=allMs.reduce(function(mx,m){return Math.max(mx,m.xp);},1);
-  var avColors=['avatar-purple','avatar-gold','avatar-green','avatar-red','avatar-blue','avatar-orange'];
-  document.getElementById('g-members').innerHTML=allMs.sort(function(a,b){return b.xp-a.xp;}).map(function(m,rank){
-    var p=getProg(m.xp);var isMe=m.id===P.id;
-    var col=isMe?'avatar-purple':avColors[rank%avColors.length];
-    var html='<div class="player-card"'+(isMe?'':' onclick="openMemberProfile(\''+m.id+'\')" style="cursor:pointer"')+'>';
+  document.getElementById('g-banner').innerHTML=bannerHtml+'</div>';
+  var maxXp=ranked.reduce(function(mx,r){return Math.max(mx,r.xp);},1);
+  document.getElementById('g-members').innerHTML='<div class="stagger">'+ranked.map(function(r,rank){
+    var p=getProg(r.total);
+    var html='<div class="player-card"'+(r.isMe?'':' onclick="openMemberProfile(\''+r.id+'\')" style="cursor:pointer"')+'>';
     html+='<div class="player-header">';
-    html+='<div style="font-size:12px;font-weight:700;color:'+(rank===0?'var(--gold)':'var(--t3)')+';width:18px;flex-shrink:0">#'+(rank+1)+'</div>';
-    html+='<div class="avatar avatar-md '+col+'">'+esc(m.username[0].toUpperCase())+'</div>';
-    html+='<div class="player-info"><div class="player-name">'+esc(m.username)+(isMe?' <span style="font-size:11px;color:var(--t3);font-family:var(--font-body)">(Tú)</span>':'')+'</div><div class="player-level">Nivel '+p.lv+' · '+LVL_N[p.lv-1]+'</div></div>';
-    html+='<div class="player-xp">'+m.xp.toLocaleString()+'</div></div>';
-    html+='<div class="xp-bar-wrap"><div class="xp-bar-fill '+(isMe?'':'xp-bar-gold')+'" style="width:'+Math.round(m.xp/maxXp*100)+'%"></div></div>';
+    html+='<div class="mono" style="font-size:13px;color:'+(rank===0&&r.xp>0?'var(--accent)':'var(--t3)')+';width:20px;flex-shrink:0">'+(rank+1)+'</div>';
+    html+='<div class="avatar avatar-md '+(r.isMe?'avatar-purple':'avatar-gold')+'">'+esc(r.name[0].toUpperCase())+'</div>';
+    html+='<div class="player-info"><div class="player-name">'+esc(r.name)+(r.isMe?' <span style="font-weight:400;color:var(--t3)">· tú</span>':'')+'</div><div class="player-level">Nv '+p.lv+' · '+r.total.toLocaleString('es-ES')+' total</div></div>';
+    html+='<div class="player-xp">'+r.xp.toLocaleString('es-ES')+'</div></div>';
+    html+='<div class="xp-bar-wrap" style="height:4px"><div class="xp-bar-fill '+(r.isMe?'':'xp-bar-gold')+'" style="width:'+Math.round(r.xp/maxXp*100)+'%"></div></div>';
     html+='</div>';
     return html;
-  }).join('');
+  }).join('')+'</div>';
   var gd=await db('/groups?id=eq.'+G.id+'&select=wheel_enabled');
   if(gd.data&&gd.data.length){
     document.getElementById('wh-toggle').checked=gd.data[0].wheel_enabled;
@@ -1131,8 +1130,8 @@ async function refreshGrp(){
   }
   var wi=await db('/wheel_items?group_id=eq.'+G.id+'&select=*');
   document.getElementById('wh-items').innerHTML=(wi.data||[]).map(function(i){
-    return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="flex:1;font-size:13px">🎯 '+esc(i.text)+'</span><button onclick="removeWI(\''+i.id+'\')" style="background:none;border:none;color:var(--t3);cursor:pointer;font-size:18px">×</button></div>';
-  }).join('')||'<div style="font-size:12px;color:var(--t3)">Sin castigos aún</div>';
+    return '<div style="display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--border)"><span style="flex:1;font-size:14px">'+esc(i.text)+'</span><button aria-label="Quitar castigo" onclick="removeWI(\''+i.id+'\')" style="background:none;border:none;color:var(--t3);cursor:pointer;font-size:20px;padding:4px 8px;line-height:1">×</button></div>';
+  }).join('')||'<div style="font-size:13px;color:var(--t3);padding:6px 0">Todavía no hay castigos. Añade el primero.</div>';
   var hist=await db('/monthly_results?group_id=eq.'+G.id+'&order=period.desc&limit=6&select=*');
   var histEl=document.getElementById('g-history');
   if(histEl&&hist.data&&hist.data.length){
@@ -1141,15 +1140,15 @@ async function refreshGrp(){
       var won=h.winner_id===P.id;
       var parts=h.period.split('-');
       var monthName=new Date(parseInt(parts[0]),parseInt(parts[1])-1,1).toLocaleDateString('es-ES',{month:'long',year:'numeric'});
-      histHtml+='<div class="card-sm" style="margin-bottom:8px;display:flex;align-items:center;justify-content:space-between">';
-      histHtml+='<div><div style="font-size:13px;font-weight:600;text-transform:capitalize">'+monthName+'</div>';
-      histHtml+='<div style="font-size:11px;color:var(--t3)">'+h.winner_xp.toLocaleString()+' vs '+h.loser_xp.toLocaleString()+' XP</div></div>';
-      histHtml+='<span class="badge '+(won?'badge-gold':'badge-purple')+'">'+(won?'Ganaste':'Perdiste')+'</span>';
+      histHtml+='<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 2px;border-bottom:1px solid var(--border)">';
+      histHtml+='<div><div style="font-size:14px;font-weight:500;text-transform:capitalize">'+monthName+'</div>';
+      histHtml+='<div class="mono" style="font-size:12px;color:var(--t3);margin-top:2px">'+h.winner_xp.toLocaleString('es-ES')+' – '+h.loser_xp.toLocaleString('es-ES')+'</div></div>';
+      histHtml+='<span class="badge '+(won?'badge-gold':'badge-purple')+'">'+(won?'ganaste':'perdiste')+'</span>';
       histHtml+='</div>';
     });
     histEl.innerHTML=histHtml;
   }else if(histEl){
-    histEl.innerHTML='<div style="font-size:12px;color:var(--t3);text-align:center;padding:8px 0">Sin meses completados aún</div>';
+    histEl.innerHTML='<div style="font-size:13px;color:var(--t3);padding:8px 2px">Aún no se ha cerrado ningún mes.</div>';
   }
 }
 
@@ -1213,7 +1212,7 @@ async function addMemberByCode(){
   if(already.data&&already.data.length){msg.textContent=target.username+' ya está en el grupo';msg.style.color='var(--t2)';msg.style.display='block';return;}
   var r=await db('/group_members','POST',{group_id:G.id,user_id:target.id});
   if(!r.ok){msg.textContent='Error al añadir. Inténtalo de nuevo.';msg.style.color='var(--red)';msg.style.display='block';return;}
-  msg.textContent='✅ '+target.username+' añadido al grupo';msg.style.color='var(--green)';msg.style.display='block';
+  msg.textContent=target.username+' ya está en el grupo';msg.style.color='var(--green)';msg.style.display='block';
   document.getElementById('inv-code').value='';
   await loadAllMembers();await refreshGrp();
 }
@@ -1252,13 +1251,15 @@ async function createNewGroup(){
 
 async function refreshTr(){
   await loadUA();
+  var got=ACHS.filter(function(a){return UA.indexOf(a.id)>-1;}).length;
+  var trc=document.getElementById('tr-count');if(trc)trc.textContent=got+' de '+ACHS.length+' desbloqueados';
   document.getElementById('tr-grid').innerHTML=ACHS.map(function(a){
     var u=UA.indexOf(a.id)>-1;
     var html='<div class="trophy-card '+(u?'unlocked':'')+'">';
     html+='<div class="trophy-icon">'+a.icon+'</div>';
     html+='<div class="trophy-name">'+a.name+'</div>';
     html+='<div class="trophy-desc">'+a.desc+'</div>';
-    if(u)html+='<div class="badge badge-gold" style="margin-top:8px">Obtenido</div>';
+    if(u)html+='<div class="badge badge-gold">hecho</div>';
     html+='</div>';
     return html;
   }).join('');
@@ -1273,9 +1274,9 @@ async function refreshProf(){
   document.getElementById('p-user').textContent=P.username;
   document.getElementById('p-level').textContent='Nivel '+p.lv+' · '+LVL_N[p.lv-1];
   document.getElementById('p-code').textContent=P.friend_code;
-  document.getElementById('st-xp').textContent=P.xp.toLocaleString()+' XP';
+  document.getElementById('st-xp').textContent=P.xp.toLocaleString('es-ES')+' xp';
   document.getElementById('st-lv').textContent=p.lv;
-  document.getElementById('st-str').textContent='🔥 '+P.streak+' días';
+  document.getElementById('st-str').textContent=P.streak+(P.streak===1?' día':' días');
   var mc=await db('/mission_completions?user_id=eq.'+P.id+'&select=id');
   document.getElementById('st-mis').textContent=mc.data?mc.data.length:0;
 }

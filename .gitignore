@@ -10,3 +10,6 @@ supabase/.temp/
 node_modules/
 .DS_Store
 Thumbs.db
+
+# Datos simulados para revisar el diseño en local
+.dev/

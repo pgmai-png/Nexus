@@ -10,23 +10,24 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="NEXUS">
-<meta name="theme-color" content="#0A0A0F">
+<meta name="theme-color" content="#0D0D0B">
+<meta name="description" content="Compite con tus amigos cumpliendo objetivos diarios, semanales y mensuales.">
 <title>NEXUS</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=mvsam1t3">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css?v=r2">
 </head>
 <body>
 
 <div id="ls">
-  <div class="ls-logo">⚡ NEXUS</div>
+  <div class="ls-logo"><div class="brand-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#151807" d="M13.9 1.9 5.8 13.4h5.5l-1.7 8.7 8.9-12h-5.8l2.2-8.2z"/></svg></div>NEXUS</div>
   <div class="ls-sub">Compite · Crece · Domina</div>
   <div class="ls-bar-wrap"><div class="ls-bar" id="ls-bar"></div></div>
 </div>
 <!-- AUTH -->
 <div id="auth-screen" style="display:none">
-  <div class="auth-logo">⚡ NEXUS</div>
-  <div class="auth-sub">Compite · Crece · Domina</div>
+  <div class="brand"><div class="brand-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#151807" d="M13.9 1.9 5.8 13.4h5.5l-1.7 8.7 8.9-12h-5.8l2.2-8.2z"/></svg></div><div class="auth-logo">NEXUS</div></div>
+  <div class="auth-sub">Retos diarios con tus amigos. Quien más cumple, gana el mes.</div>
   <div class="auth-card">
     <div class="auth-tabs">
       <div class="auth-tab active" id="tab-in" onclick="switchTab('in')">Entrar</div>
@@ -52,78 +53,77 @@
 <div id="setup-screen" class="hidden">
   <!-- Step 1: Welcome & code -->
   <div class="setup-step active" id="setup-1">
-    <div class="setup-emoji">⚡</div>
+    <div class="setup-emoji">Paso 1 de 5</div>
     <div class="setup-title">Bienvenido a NEXUS</div>
-    <div class="setup-desc">Tu código de amigo — compártelo para vincularos.</div>
+    <div class="setup-desc">Este es tu código de amigo. Pásaselo a tu rival para vincularos.</div>
     <div class="card" style="margin:0 0 16px">
       <div class="friend-code" id="s1-code">——————</div>
-      <button class="btn btn-secondary" style="margin-top:12px" onclick="copyCode()">📋 Copiar código</button>
+      <button class="btn btn-secondary" style="margin-top:12px" onclick="copyCode()">Copiar código</button>
     </div>
     <div style="flex:1"></div>
-    <button class="btn btn-primary" onclick="goS(2)">Continuar →</button>
+    <button class="btn btn-primary" onclick="goS(2)">Continuar</button>
   </div>
 
   <!-- Step 2: Add friend -->
   <div class="setup-step" id="setup-2">
-    <div class="setup-emoji">🤝</div>
+    <div class="setup-emoji">Paso 2 de 5</div>
     <div class="setup-title">Vincula a tu rival</div>
     <div class="setup-desc">Introduce el código de tu rival para enviarle solicitud.</div>
     <div id="s2-main">
       <div class="form-group"><label>Código de rival</label><input type="text" id="s2-code" placeholder="Ej: a1b2c3d4" maxlength="8"></div>
       <div class="err" id="s2-err"></div>
       <button class="btn btn-primary" onclick="sendFR()">Enviar solicitud</button>
-      <div style="margin:16px 0;font-size:13px;color:var(--t2);text-align:center">— solicitudes recibidas —</div>
+      <div class="section-label" style="padding:0;margin:24px 0 8px">Solicitudes recibidas</div>
       <div id="s2-reqs"></div>
     </div>
     <div id="s2-ok" class="hidden">
       <div class="card" style="margin:0;text-align:center;padding:24px">
-        <div style="font-size:40px;margin-bottom:8px">✅</div>
-        <div style="font-weight:700;font-size:16px;font-family:var(--font-display)" id="s2-ok-name">¡Conectado!</div>
+                <div style="font-weight:700;font-size:16px;font-family:var(--font-display)" id="s2-ok-name">Conectado</div>
       </div>
     </div>
     <div style="flex:1"></div>
     <div style="display:flex;gap:10px;margin-top:16px">
-      <button class="btn btn-secondary" style="flex:1" onclick="goS(1)">← Atrás</button>
-      <button class="btn btn-primary" style="flex:2" onclick="goS(3)">Continuar →</button>
+      <button class="btn btn-secondary" style="flex:1" onclick="goS(1)">Atrás</button>
+      <button class="btn btn-primary" style="flex:2" onclick="goS(3)">Continuar</button>
     </div>
   </div>
 
   <!-- Step 3: Create group -->
   <div class="setup-step" id="setup-3">
-    <div class="setup-emoji">⚔️</div>
+    <div class="setup-emoji">Paso 3 de 5</div>
     <div class="setup-title">Crea el grupo</div>
-    <div class="setup-desc">Dale un nombre a vuestro grupo de batalla.</div>
+    <div class="setup-desc">Ponle nombre. Podréis ser hasta seis.</div>
     <div class="form-group"><label>Nombre del grupo</label><input type="text" id="s3-name" placeholder="Ej: Los Imparables" maxlength="30"></div>
     <div class="err" id="s3-err"></div>
     <div style="flex:1"></div>
     <div style="display:flex;gap:10px;margin-top:16px">
-      <button class="btn btn-secondary" style="flex:1" onclick="goS(2)">← Atrás</button>
-      <button class="btn btn-primary" style="flex:2" id="s3-btn" onclick="createGrp()">Crear →</button>
+      <button class="btn btn-secondary" style="flex:1" onclick="goS(2)">Atrás</button>
+      <button class="btn btn-primary" style="flex:2" id="s3-btn" onclick="createGrp()">Crear grupo</button>
     </div>
   </div>
 
   <!-- Step 4: Goals -->
   <div class="setup-step" id="setup-4">
-    <div class="setup-emoji">🎯</div>
+    <div class="setup-emoji">Paso 4 de 5</div>
     <div class="setup-title">Tus objetivos</div>
     <div class="setup-desc">¿Qué quieres conseguir a largo plazo?</div>
     <div id="s4-goals"></div>
     <button class="btn btn-secondary" onclick="addGoal()" style="margin-bottom:16px">+ Añadir objetivo</button>
     <div style="flex:1"></div>
-    <button class="btn btn-primary" onclick="saveGoals()">Guardar →</button>
+    <button class="btn btn-primary" onclick="saveGoals()">Guardar</button>
   </div>
 
   <!-- Step 5: Missions -->
   <div class="setup-step" id="setup-5">
-    <div class="setup-emoji">📋</div>
+    <div class="setup-emoji">Paso 5 de 5</div>
     <div class="setup-title">Tus misiones</div>
     <div class="setup-desc">Edítalas a tu gusto. Las podrás cambiar después.</div>
-    <div style="font-size:11px;font-weight:600;color:var(--purple3);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.06em">Diarias</div>
+    <div class="section-label" style="padding:0;margin:0 0 8px">Diarias</div>
     <div id="s5-daily"></div>
-    <div style="font-size:11px;font-weight:600;color:var(--gold);margin:12px 0 8px;text-transform:uppercase;letter-spacing:0.06em">Mensuales</div>
+    <div class="section-label" style="padding:0;margin:16px 0 8px">Mensuales</div>
     <div id="s5-monthly"></div>
     <div style="flex:1"></div>
-    <button class="btn btn-primary" id="s5-btn" onclick="saveMissions()" style="margin-top:16px">Empezar →</button>
+    <button class="btn btn-primary" id="s5-btn" onclick="saveMissions()" style="margin-top:16px">Empezar</button>
   </div>
 </div>
 
@@ -138,40 +138,31 @@
           <div class="page-title" id="d-greeting">¡Hola!</div>
           <div class="page-sub" id="d-date"></div>
         </div>
-        <div style="text-align:right">
-          <div style="font-size:11px;color:var(--t3);font-weight:600;text-transform:uppercase;letter-spacing:0.05em">NIVEL</div>
-          <div style="font-size:32px;font-weight:800;color:var(--purple3);font-family:var(--font-display);line-height:1" id="d-level">1</div>
-        </div>
       </div>
-      <div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-          <div style="font-size:11px;color:var(--t3);font-weight:600;text-transform:uppercase;letter-spacing:0.05em">XP TOTAL</div>
-          <div style="font-size:15px;font-weight:700;color:var(--purple3);font-family:var(--font-display)" id="d-xp">0 XP</div>
-        </div>
-        <div class="xp-bar-wrap" style="height:8px"><div class="xp-bar-fill" id="d-xp-bar" style="width:0%"></div></div>
-        <div style="display:flex;justify-content:space-between;margin-top:7px">
-          <div style="font-size:11px;color:var(--t3)" id="d-xp-next"></div>
-          <div style="font-size:11px;color:var(--gold);font-weight:600" id="d-streak">🔥 0 días</div>
-        </div>
+      <div class="scoreboard">
+        <div class="sb-top"><span class="sb-label">XP total</span><span class="sb-level">Nivel <span id="d-level">1</span> · <span id="d-level-name">Novato</span></span></div>
+        <div class="sb-xp" id="d-xp">0</div>
+        <div class="xp-bar-wrap"><div class="xp-bar-fill" id="d-xp-bar" style="width:0%"></div></div>
+        <div class="sb-foot"><span id="d-xp-next"></span><span class="sb-streak" id="d-streak">racha 0 d</span></div>
       </div>
       <div class="day-progress" id="d-day-prog" style="display:none">
-        <div style="font-size:13px;color:var(--t2)" id="d-prog-text">0 de 0 misiones hoy</div>
-        <div style="font-size:13px;font-weight:700;color:var(--purple3);font-family:var(--font-display)" id="d-prog-xp">0 XP</div>
+        <div class="dp-head"><span id="d-prog-text">0 de 0 hoy</span><span class="mono" id="d-prog-xp">+0</span></div>
+        <div class="dp-segs" id="d-prog-segs"></div>
       </div>
       <div id="d-join-group" style="display:none"></div>
       <div class="section-label">MISIONES DE HOY</div>
       <div id="d-daily"></div>
-      <div class="section-label" style="margin-top:4px">MISIONES SEMANALES</div>
+      <div class="section-label">MISIONES SEMANALES</div>
       <div id="d-weekly"></div>
-      <div class="section-label" style="margin-top:4px">MISIONES MENSUALES</div>
+      <div class="section-label">MISIONES MENSUALES</div>
       <div id="d-monthly"></div>
     </div>
 
     <!-- MISSIONS -->
     <div id="page-missions" class="hidden fade-in">
       <div class="page-header">
-        <div><div class="page-title">Misiones</div><div class="page-sub">Tus objetivos diarios y mensuales</div></div>
-        <button onclick="openAddMission()" style="background:var(--purple-dim);border:0.5px solid var(--purple);border-radius:8px;padding:7px 12px;color:var(--purple3);font-size:12px;font-weight:600;cursor:pointer;flex-shrink:0">+ Añadir</button>
+        <div><div class="page-title">Misiones</div><div class="page-sub">Lo que te has propuesto</div></div>
+        <button class="header-action" onclick="openAddMission()">Nueva</button>
       </div>
       <div class="tabs">
         <div class="tab active" onclick="misTab('daily')">Diarias</div>
@@ -186,51 +177,51 @@
     <!-- GROUP -->
     <div id="page-group" class="hidden fade-in">
       <div class="page-header">
-        <div><div class="page-title" id="g-title">Grupo</div><div class="page-sub">Vuestro espacio de batalla</div></div>
-        <button onclick="openGrpSwitcher()" style="background:var(--s2);border:0.5px solid var(--border2);border-radius:8px;padding:7px 12px;color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;flex-shrink:0">⇄ Grupos</button>
+        <div><div class="page-title" id="g-title">Grupo</div><div class="page-sub">Clasificación del mes</div></div>
+        <button class="header-action" onclick="openGrpSwitcher()">Cambiar</button>
       </div>
-      <div style="padding:0 16px;margin-bottom:12px"><div class="countdown-wrap"><div class="countdown-label">🗓 Reset mensual en</div><div class="countdown-val" id="g-cd">— días</div></div></div>
+      <div style="padding:0 16px;margin-bottom:12px"><div class="countdown-wrap"><div class="countdown-label">El mes se cierra en</div><div class="countdown-val" id="g-cd">— días</div></div></div>
       <div id="g-banner"></div>
       <div class="section-label">JUGADORES</div>
       <div id="g-members"></div>
-      <div class="section-label" style="margin-top:8px">AÑADIR MIEMBRO</div>
+      <div class="section-label">AÑADIR MIEMBRO</div>
       <div class="card" style="padding:14px">
-        <div style="font-size:13px;color:var(--t2);margin-bottom:10px">Introduce el código de amigo de quien quieres añadir.</div>
+        <div style="font-size:13px;color:var(--t2);margin-bottom:10px">Con su código de amigo, que está en su perfil.</div>
         <div style="display:flex;gap:8px">
-          <input type="text" id="inv-code" placeholder="Código de amigo..." maxlength="8">
+          <input type="text" id="inv-code" placeholder="a1b2c3d4" style="font-family:var(--font-mono)" maxlength="8">
           <button onclick="addMemberByCode()" class="btn btn-primary btn-sm" style="width:auto;flex-shrink:0">Añadir</button>
         </div>
         <div id="inv-msg" style="font-size:12px;margin-top:8px;display:none"></div>
       </div>
-      <div class="section-label" style="margin-top:4px">RULETA DEL CASTIGO</div>
+      <div class="section-label">RULETA DEL CASTIGO</div>
       <div class="card">
         <div class="switch-row">
-          <div><div style="font-size:14px;font-weight:600;font-family:var(--font-display)">Activar ruleta mensual</div><div style="font-size:12px;color:var(--t2);margin-top:2px">El perdedor del mes sufre las consecuencias</div></div>
+          <div><div style="font-size:15px;font-weight:600">Ruleta mensual</div><div style="font-size:13px;color:var(--t2);margin-top:2px">Quien quede último paga el castigo que toque</div></div>
           <label class="switch"><input type="checkbox" id="wh-toggle" onchange="toggleWheel()"><span class="sw-slider"></span></label>
         </div>
         <div id="wh-section" class="hidden" style="margin-top:12px">
-          <div style="font-size:13px;color:var(--t2);margin-bottom:8px">Castigos:</div>
+          
           <div id="wh-items"></div>
           <div style="display:flex;gap:8px;margin-top:8px">
-            <input type="text" id="wh-input" placeholder="Añadir castigo...">
+            <input type="text" id="wh-input" placeholder="Nuevo castigo">
             <button class="btn btn-sm btn-secondary" onclick="addWI()" style="width:auto">+</button>
           </div>
-          <button class="btn btn-primary" onclick="openWheel()" style="margin-top:12px">🎰 Girar la ruleta</button>
+          <button class="btn btn-primary" onclick="openWheel()" style="margin-top:12px">Girar la ruleta</button>
         </div>
       </div>
-      <div class="section-label" style="margin-top:4px">HISTORIAL</div>
+      <div class="section-label">HISTORIAL</div>
       <div id="g-history" style="padding:0 16px 16px"></div>
     </div>
 
     <!-- TROPHIES -->
     <div id="page-trophies" class="hidden fade-in">
       <div class="page-header">
-        <div><div class="page-title">Logros</div><div class="page-sub">Tu sala de trofeos</div></div>
-        <button onclick="openCreateAch()" style="background:var(--purple-dim);border:0.5px solid var(--purple);border-radius:8px;padding:7px 12px;color:var(--purple3);font-size:12px;font-weight:600;cursor:pointer;flex-shrink:0">+ Crear</button>
+        <div><div class="page-title">Logros</div><div class="page-sub" id="tr-count">Lo que llevas desbloqueado</div></div>
+        <button class="header-action" onclick="openCreateAch()">Crear</button>
       </div>
       <div class="section-label">LOGROS DEL JUEGO</div>
       <div class="trophy-grid" id="tr-grid"></div>
-      <div class="section-label" id="custom-ach-label" style="margin-top:8px;display:none">LOGROS DEL GRUPO</div>
+      <div class="section-label" id="custom-ach-label" style="display:none">LOGROS DEL GRUPO</div>
       <div class="trophy-grid" id="tr-custom-grid"></div>
       <div style="height:16px"></div>
     </div>
@@ -241,28 +232,28 @@
       <div class="card" style="text-align:center;padding:28px">
         <div style="position:relative;width:80px;margin:0 auto 14px;cursor:pointer" onclick="triggerAvatarUpload()">
           <div class="avatar avatar-lg avatar-purple" id="p-av" style="width:80px;height:80px;font-size:28px;overflow:hidden">G</div>
-          <div style="position:absolute;bottom:0;right:0;width:24px;height:24px;border-radius:50%;background:var(--purple);display:flex;align-items:center;justify-content:center;font-size:12px;border:2px solid var(--bg)">✏️</div>
+          <div style="position:absolute;bottom:-4px;right:-4px;width:26px;height:26px;border-radius:9px;background:var(--t1);display:flex;align-items:center;justify-content:center;border:3px solid var(--s1)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#151807" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></div>
         </div>
         <input type="file" id="avatar-input" accept="image/*" style="display:none" onchange="uploadAvatar(event)">
-        <div style="font-size:22px;font-weight:800;font-family:var(--font-display)" id="p-user">—</div>
-        <div style="font-size:13px;color:var(--purple3);margin-top:4px" id="p-level">Nivel 1 · Novato</div>
+        <div style="font-size:24px;font-weight:700;letter-spacing:-0.03em" id="p-user">—</div>
+        <div style="font-size:12px;color:var(--t2);margin-top:6px;font-family:var(--font-mono)" id="p-level">Nivel 1 · Novato</div>
       </div>
       <div class="section-label">TU CÓDIGO DE AMIGO</div>
       <div class="card" style="padding:12px">
-        <div class="friend-code" id="p-code" style="font-size:20px;padding:12px">——</div>
-        <button class="btn btn-secondary" style="margin-top:10px" onclick="copyCode()">📋 Copiar código</button>
+        <div class="friend-code" id="p-code" style="font-size:22px;padding:14px">——</div>
+        <button class="btn btn-secondary" style="margin-top:10px" onclick="copyCode()">Copiar código</button>
       </div>
-      <div class="section-label" style="margin-top:4px">ESTADÍSTICAS</div>
+      <div class="section-label">ESTADÍSTICAS</div>
       <div class="card">
-        <div class="stat-row"><span class="stat-label">XP Total</span><span class="stat-val" id="st-xp" style="color:var(--purple3)">0</span></div>
+        <div class="stat-row"><span class="stat-label">XP total</span><span class="stat-val" id="st-xp">0</span></div>
         <div class="divider"></div>
         <div class="stat-row"><span class="stat-label">Nivel</span><span class="stat-val" id="st-lv">1</span></div>
         <div class="divider"></div>
-        <div class="stat-row"><span class="stat-label">Racha actual</span><span class="stat-val" id="st-str" style="color:var(--gold)">🔥 0 días</span></div>
+        <div class="stat-row"><span class="stat-label">Racha actual</span><span class="stat-val" id="st-str">0 días</span></div>
         <div class="divider"></div>
         <div class="stat-row"><span class="stat-label">Misiones completadas</span><span class="stat-val" id="st-mis">0</span></div>
       </div>
-      <div style="padding:0 16px;margin-top:8px"><button id="notif-btn" class="btn btn-secondary" onclick="enableNotifications()" style="margin-bottom:10px">🔔 Activar notificaciones</button>
+      <div style="padding:0 16px;margin-top:8px"><button id="notif-btn" class="btn btn-secondary" onclick="enableNotifications()" style="margin-bottom:10px">Activar notificaciones</button>
       <button class="btn btn-danger" onclick="doLogout()">Cerrar sesión</button></div>
       <div style="height:20px"></div>
     </div>
@@ -281,27 +272,27 @@
 <div id="lu-overlay">
   <div class="particles" id="lu-particles"></div>
   <div style="position:relative;z-index:1;text-align:center;padding:24px">
-    <div style="font-size:12px;color:var(--t2);letter-spacing:0.15em;text-transform:uppercase;margin-bottom:20px">¡Subiste de nivel!</div>
+    <div class="mono" style="font-size:13px;color:var(--t2);margin-bottom:24px">Subes de nivel</div>
     <div class="lu-ring"><div class="lu-num" id="lu-num">2</div><div style="font-size:11px;color:var(--t2);margin-top:2px">NIVEL</div></div>
     <div style="font-size:26px;font-weight:800;margin-top:20px;font-family:var(--font-display)" id="lu-title">¡IMPARABLE!</div>
     <div style="font-size:14px;color:var(--t2);margin-top:6px" id="lu-sub">Has alcanzado el nivel 2</div>
-    <button class="btn btn-primary" onclick="closeLU()" style="margin-top:28px;max-width:200px">¡A por más! ⚡</button>
+    <button class="btn btn-primary" onclick="closeLU()" style="margin-top:28px;max-width:200px">Seguir</button>
   </div>
 </div>
 
 <!-- ACHIEVEMENT TOAST -->
 <div id="ach-toast">
-  <div style="font-size:28px" id="ach-icon">🏆</div>
+  <div style="font-size:28px" id="ach-icon">★</div>
   <div><div style="font-size:14px;font-weight:700;color:var(--gold);font-family:var(--font-display)" id="ach-title">Logro</div><div style="font-size:12px;color:var(--t2)" id="ach-desc">—</div></div>
 </div>
 
 <!-- MONTH RESULTS -->
 <div id="monthres-overlay">
-  <div style="font-size:64px;margin-bottom:16px" id="mr-emoji">🏆</div>
+  <div class="mono" style="font-size:72px;font-weight:600;letter-spacing:-0.06em;color:var(--accent);margin-bottom:12px" id="mr-emoji">1º</div>
   <div style="font-size:28px;font-weight:800;font-family:var(--font-display);margin-bottom:8px" id="mr-title">¡Ganaste el mes!</div>
   <div style="font-size:15px;color:var(--t2);margin-bottom:24px" id="mr-sub"></div>
   <div id="mr-wheel" class="hidden" style="background:var(--gdim);border:0.5px solid var(--gold);border-radius:var(--r);padding:16px;margin-bottom:24px;width:100%;max-width:320px">
-    <div style="font-size:12px;color:var(--t2);margin-bottom:6px">🎰 Castigo del mes</div>
+    <div style="font-size:12px;color:var(--t2);margin-bottom:6px">Castigo del mes</div>
     <div style="font-size:18px;font-weight:700;color:var(--gold);font-family:var(--font-display)" id="mr-punishment"></div>
   </div>
   <button class="btn btn-primary" onclick="closeMR()" style="max-width:240px">¡Al siguiente mes! →</button>
@@ -311,7 +302,7 @@
 <div class="overlay" id="wh-overlay" onclick="if(event.target===this)this.classList.remove('show')">
   <div class="modal">
     <div class="modal-handle"></div>
-    <div class="modal-title" style="text-align:center">🎰 Ruleta del Castigo</div>
+    <div class="modal-title" style="text-align:center">Ruleta del castigo</div>
     <canvas id="wh-canvas" width="280" height="280" style="display:block;margin:0 auto;border-radius:50%"></canvas>
     <div id="wh-result" class="hidden" style="text-align:center;padding:20px">
       <div style="font-size:12px;color:var(--t2);margin-bottom:6px">¡El castigo es!</div>
@@ -336,7 +327,7 @@
       <label class="switch"><input type="checkbox" id="edit-private"><span class="sw-slider"></span></label>
     </div>
     <div style="display:flex;gap:8px;margin-top:8px">
-      <button class="btn btn-danger btn-sm" style="flex:1" onclick="deleteMission()">🗑</button>
+      <button class="btn btn-danger btn-sm" style="flex:1" onclick="deleteMission()">Borrar</button>
       <button class="btn btn-secondary btn-sm" style="flex:1" onclick="document.getElementById('edit-overlay').classList.remove('show')">Cancelar</button>
       <button class="btn btn-primary btn-sm" style="flex:2" onclick="saveEdit()">Guardar</button>
     </div>
@@ -355,7 +346,7 @@
 <!-- JOIN TOAST -->
 <div id="join-toast" style="position:fixed;top:max(16px,env(safe-area-inset-top));left:16px;right:16px;background:var(--gdim2);border:0.5px solid rgba(16,185,129,0.3);border-radius:var(--r);padding:14px 16px;z-index:600;text-align:center;font-size:13px;font-weight:600;color:var(--green);transform:translateY(-120px);transition:transform 0.4s cubic-bezier(0.34,1.2,0.64,1)"></div>
 
-<script src="app.js?v=mvsam1t3"></script>
+<script src="app.js?v=r2"></script>
 
 <div id="notif-toast"></div>
 
@@ -415,9 +406,9 @@
     <div class="modal-handle"></div>
     <div class="modal-title">Unirse a un grupo</div>
     <div style="font-size:13px;color:var(--t2);margin-bottom:14px">Pide a alguien del grupo tu código de amigo. Una vez te añadan, el grupo aparecerá automáticamente.</div>
-    <div style="font-size:12px;font-weight:600;color:var(--t3);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em">Tu código de amigo</div>
+    <div class="section-label" style="padding:0;margin:14px 0 8px">Tu código de amigo</div>
     <div class="friend-code-display" id="jg-code" style="font-size:20px;padding:12px;margin-bottom:12px">——</div>
-    <button class="btn btn-secondary" onclick="copyJoinCode()">📋 Copiar código</button>
+    <button class="btn btn-secondary" onclick="copyJoinCode()">Copiar código</button>
     <div style="margin-top:16px;padding-top:16px;border-top:0.5px solid var(--border)">
       <div style="font-size:13px;color:var(--t2);margin-bottom:10px">O introduce el código de un miembro del grupo para que te añadan:</div>
       <div style="display:flex;gap:8px">
@@ -469,7 +460,7 @@
       <div id="award-ach-name" style="font-size:18px;font-weight:700"></div>
       <div id="award-ach-desc" style="font-size:13px;color:var(--t2);margin-top:4px"></div>
     </div>
-    <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:var(--t3);margin-bottom:8px">Otorgar a:</div>
+    <div class="section-label" style="padding:0;margin:14px 0 8px">Otorgar a</div>
     <div id="award-members-list"></div>
     <div class="err" id="award-err"></div>
     <button class="btn btn-secondary" onclick="document.getElementById('award-ach-overlay').classList.remove('show')" style="margin-top:12px">Cerrar</button>
@@ -487,19 +478,19 @@
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">
       <div style="background:var(--s2);border-radius:var(--rs);padding:12px;text-align:center">
-        <div style="font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px">XP Total</div>
+        <div class="mono" style="font-size:12px;color:var(--t3);margin-bottom:4px">XP total</div>
         <div style="font-size:18px;font-weight:700;color:var(--purple3)" id="mp-xp">0</div>
       </div>
       <div style="background:var(--s2);border-radius:var(--rs);padding:12px;text-align:center">
-        <div style="font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px">Racha</div>
-        <div style="font-size:18px;font-weight:700;color:var(--gold)" id="mp-streak">0 🔥</div>
+        <div class="section-label" style="padding:0;margin:14px 0 8px">Racha</div>
+        <div style="font-size:18px;font-weight:700;color:var(--gold)" id="mp-streak">0 d</div>
       </div>
     </div>
-    <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--t3);margin-bottom:8px">MISIONES DIARIAS</div>
+    <div class="section-label" style="padding:0;margin:14px 0 8px">MISIONES DIARIAS</div>
     <div id="mp-daily"></div>
-    <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--t3);margin:12px 0 8px">MISIONES SEMANALES</div>
+    <div class="section-label" style="padding:0;margin:14px 0 8px">MISIONES SEMANALES</div>
     <div id="mp-weekly"></div>
-    <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--t3);margin:12px 0 8px">MISIONES MENSUALES</div>
+    <div class="section-label" style="padding:0;margin:14px 0 8px">MISIONES MENSUALES</div>
     <div id="mp-monthly"></div>
     <button class="btn btn-secondary" onclick="document.getElementById('member-profile-overlay').classList.remove('show')" style="margin-top:16px">Cerrar</button>
   </div>
