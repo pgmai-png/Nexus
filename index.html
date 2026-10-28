@@ -23,6 +23,8 @@
   --r:14px;--rs:10px;
   --font-display:'Space Grotesk',sans-serif;
   --font-body:'Inter',sans-serif;
+  /* Alias de nombres que usa el código pero no estaban definidos */
+  --purple-dim:var(--pdim);--gold-dim:var(--gdim);--green-dim:var(--gdim2);--text2:var(--t2);
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;overflow:hidden}
@@ -99,7 +101,7 @@ label{display:block;font-size:12px;color:var(--t2);margin-bottom:6px;font-weight
 .setup-emoji{font-size:40px;margin-bottom:10px}
 .setup-title{font-size:22px;font-weight:800;font-family:var(--font-display)}
 .setup-desc{font-size:14px;color:var(--t2);margin-top:6px;line-height:1.6;margin-bottom:20px}
-.friend-code{font-size:26px;font-weight:800;letter-spacing:5px;text-align:center;color:var(--purple3);background:var(--pdim);border-radius:var(--r);padding:16px;font-family:var(--font-display)}
+.friend-code,.friend-code-display{font-size:26px;font-weight:800;letter-spacing:5px;text-align:center;color:var(--purple3);background:var(--pdim);border-radius:var(--r);padding:16px;font-family:var(--font-display)}
 .goal-row{display:flex;gap:8px;align-items:center;margin-bottom:8px}
 .goal-row input{flex:1}
 .goal-rm{background:none;border:none;color:var(--t3);font-size:22px;cursor:pointer;padding:4px;line-height:1}
@@ -1334,7 +1336,7 @@ async function openAwardAch(achId){
     if(has){
       listHtml+='<span class="badge badge-gold">✓ Obtenido</span>';
     }else{
-        '<button data-acid="'+achId+'" data-uid="'+m.id+'" data-uname="'+encodeURIComponent(m.username)+'" onclick="awardAchToBtn(this)" class="btn btn-sm btn-secondary" style="font-size:12px">Otorgar</button>'
+      listHtml+='<button data-acid="'+achId+'" data-uid="'+m.id+'" data-uname="'+encodeURIComponent(m.username)+'" onclick="awardAchToBtn(this)" class="btn btn-sm btn-secondary" style="font-size:12px">Otorgar</button>';
     }
     listHtml+='</div>';
   });
@@ -1489,7 +1491,14 @@ async function toggleM(id,isDone){
   if(!m.data||!m.data.length)return;
   var mission=m.data[0];
   if(isDone){
-    db('/mission_completions?mission_id=eq.'+id+'&user_id=eq.'+P.id+'&completed_date=eq.'+today,'DELETE');
+    // Borra el completado del periodo que se muestra como hecho: hoy (diaria), esta semana (semanal)
+    // o cualquiera (mensual). Antes solo borraba el de hoy y las semanales/mensuales restaban XP en bucle.
+    var since=mission.type==='daily'?'&completed_date=eq.'+today:mission.type==='weekly'?'&completed_date=gte.'+weekStart():'';
+    var compQ='/mission_completions?mission_id=eq.'+id+'&user_id=eq.'+P.id+since;
+    var found=await db(compQ+'&select=id');
+    if(!found.ok||!found.data||!found.data.length){refreshDash();return;}
+    var del=await db(compQ,'DELETE');
+    if(!del.ok){refreshDash();return;}
     var newXp=Math.max(0,P.xp-mission.xp_value);
     db('/profiles?id=eq.'+P.id,'PATCH',{xp:newXp});
     P.xp=newXp;
@@ -1937,33 +1946,8 @@ window.addEventListener('load',async function(){
       <label class="switch"><input type="checkbox" id="am-private"><span class="sw-slider"></span></label>
     </div>
     <div class="form-group">
-      <div class="switch-row" style="padding:0">
-        <div>
-          <div style="font-size:13px;font-weight:600">Misión privada</div>
-          <div style="font-size:12px;color:var(--t2);margin-top:2px">Solo tú verás el nombre. Los demás verán "Misión privada"</div>
-        </div>
-        <label class="switch"><input type="checkbox" id="am-private"><span class="sw-slider"></span></label>
-      </div>
-    </div>
-    <div class="form-group">
-      <div class="switch-row" style="padding:6px 0">
-        <div>
-          <div style="font-size:14px;font-weight:600">Misión privada</div>
-          <div style="font-size:12px;color:var(--t2)">Solo tú verás el nombre. Los demás verán "Misión privada"</div>
-        </div>
-        <label class="switch"><input type="checkbox" id="am-private"><span class="sw-slider"></span></label>
-      </div>
-    </div>
-    <div class="form-group">
       <label>XP</label>
       <input type="number" id="am-xp" value="80" min="10" max="1000">
-    </div>
-    <div class="switch-row" style="padding:6px 0">
-      <div>
-        <div style="font-size:14px;font-weight:600">Misión privada</div>
-        <div style="font-size:12px;color:var(--t2)">El resto del grupo solo verá "Misión privada"</div>
-      </div>
-      <label class="switch"><input type="checkbox" id="am-private"><span class="sw-slider"></span></label>
     </div>
     <div class="err" id="am-err"></div>
     <div style="display:flex;gap:10px;margin-top:8px">
