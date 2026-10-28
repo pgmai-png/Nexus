@@ -546,6 +546,13 @@ async function authR(path,body){
 function showErr(id,msg){var e=document.getElementById(id);if(e){e.textContent=msg;e.className=(e.className.replace(' show','')||e.className)+' show';}}
 function hideErr(id){var e=document.getElementById(id);if(e)e.classList.remove('show');}
 function showOk(id,msg){var e=document.getElementById(id);if(e){e.textContent=msg;e.className=(e.className.replace(' show','')||e.className)+' show';}}
+// Escapa texto de usuario antes de meterlo en innerHTML (evita XSS)
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+// Solo acepta imágenes base64 o URLs https sin caracteres que rompan el atributo/CSS
+function safeImg(u){return typeof u==='string'&&/^(data:image\/(png|jpe?g|gif|webp|svg\+xml);base64,[A-Za-z0-9+\/=]+|https:\/\/[^\s"'()<>\\]+)$/i.test(u)?u:'';}
+// Fecha YYYY-MM-DD en hora local (toISOString usa UTC y desplaza el día en España)
+function localDate(d){d=d||new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function weekStart(){var n=new Date();var ws=new Date(n);ws.setDate(n.getDate()-(n.getDay()||7)+1);return localDate(ws);}
 
 function switchTab(t){
   document.getElementById('tab-in').classList.toggle('active',t==='in');
@@ -784,7 +791,7 @@ function genMissions(goals){
 async function saveMissions(){
   var btn=document.getElementById('s5-btn');btn.disabled=true;btn.textContent='Guardando...';
   try{
-    var today=new Date().toISOString().split('T')[0];
+    var today=localDate();
     for(var i=0;i<3;i++){
       var t=document.getElementById('dm-'+i)?document.getElementById('dm-'+i).value.trim():'';
       var x=parseInt(document.getElementById('dm-xp-'+i)?document.getElementById('dm-xp-'+i).value:80)||80;
@@ -883,7 +890,7 @@ async function checkMonthlyClose(){
     await db('/missions?id=eq.'+oldMis.data[i].id,'DELETE');
   }
   // Create fresh monthly missions for each user
-  var today=new Date().toISOString().split('T')[0];
+  var today=localDate();
   var allMems=[P].concat(Members);
   for(var mi=0;mi<allMems.length;mi++){
     var goals=await db('/goals?user_id=eq.'+allMems[mi].id+'&group_id=eq.'+G.id+'&select=text&limit=1');
@@ -946,7 +953,7 @@ async function refreshDash(){
     }
   }
   if(G){
-    var today=new Date().toISOString().split('T')[0];
+    var today=localDate();
     var mis=await db('/missions?group_id=eq.'+G.id+'&user_id=eq.'+P.id+'&approved_by=not.is.null&select=*');
     var comps=await db('/mission_completions?user_id=eq.'+P.id+'&completed_date=eq.'+today+'&select=mission_id');
     var allC=await db('/mission_completions?user_id=eq.'+P.id+'&select=mission_id');
@@ -964,9 +971,7 @@ async function refreshDash(){
     }else{dayProg.style.display='none';}
     document.getElementById('d-daily').innerHTML=renderMis(daily,doneT,'var(--purple3)');
     var weekly=(mis.data||[]).filter(function(m){return m.type==='weekly';});
-    var now2=new Date();var day2=now2.getDay()||7;
-    var ws=new Date(now2);ws.setDate(now2.getDate()-day2+1);ws.setHours(0,0,0,0);
-    var wsStr=ws.toISOString().split('T')[0];
+    var wsStr=weekStart();
     var wkDone=new Set((allC.data||[]).filter(function(c){return c.completed_date>=wsStr;}).map(function(c){return c.mission_id;}));
     var wEl=document.getElementById('d-weekly');
     if(wEl)wEl.innerHTML=renderMis(weekly,wkDone,'#10B981');
@@ -1128,7 +1133,7 @@ async function saveNewMission(){
   err.textContent='';
   if(!title){err.textContent='Escribe un título';return;}
   if(!G){err.textContent='No hay grupo activo';return;}
-  var today=new Date().toISOString().split('T')[0];
+  var today=localDate();
   var isPrivate=document.getElementById('am-private')?document.getElementById('am-private').checked:false;
   var r=await db('/missions','POST',{
     group_id:G.id,
@@ -1439,10 +1444,8 @@ async function openMemberProfile(userId){
   // Load their missions
   var mis=await db('/missions?group_id=eq.'+G.id+'&user_id=eq.'+userId+'&approved_by=not.is.null&select=*');
   var comps=await db('/mission_completions?user_id=eq.'+userId+'&select=mission_id,completed_date');
-  var today=new Date().toISOString().split('T')[0];
-  var now2=new Date();var day2=now2.getDay()||7;
-  var ws=new Date(now2);ws.setDate(now2.getDate()-day2+1);ws.setHours(0,0,0,0);
-  var wsStr=ws.toISOString().split('T')[0];
+  var today=localDate();
+  var wsStr=weekStart();
   var doneToday=new Set((comps.data||[]).filter(function(x){return x.completed_date===today;}).map(function(x){return x.mission_id;}));
   var doneWeek=new Set((comps.data||[]).filter(function(x){return x.completed_date>=wsStr;}).map(function(x){return x.mission_id;}));
   var doneAll=new Set((comps.data||[]).map(function(x){return x.mission_id;}));
@@ -1472,7 +1475,7 @@ async function openMemberProfile(userId){
 }
 
 async function toggleM(id,isDone){
-  var today=new Date().toISOString().split('T')[0];
+  var today=localDate();
   var now=new Date();
   // OPTIMISTIC UPDATE — flip checkbox immediately
   var checkEl=document.querySelector('[onclick*="toggleM(\''+id+'\'"],.mission-check[onclick*="'+id+'"]');
@@ -1510,7 +1513,7 @@ async function toggleM(id,isDone){
     var oldLv=getLv(oldXp),newLv=getLv(newXp);
     var lastActive=P.last_active;
     var yest=new Date();yest.setDate(yest.getDate()-1);
-    var yStr=yest.toISOString().split('T')[0];
+    var yStr=localDate(yest);
     var newStreak=P.streak;
     if(lastActive!==today){
       if(lastActive===yStr)newStreak=P.streak+1;
@@ -1591,16 +1594,12 @@ function closeLU(){document.getElementById('lu-overlay').classList.remove('show'
 
 async function refreshMis(){
   if(!G)return;
-  var today=new Date().toISOString().split('T')[0];
+  var today=localDate();
   var mis=await db('/missions?group_id=eq.'+G.id+'&user_id=eq.'+P.id+'&approved_by=not.is.null&select=*');
   var comps=await db('/mission_completions?user_id=eq.'+P.id+'&select=mission_id,completed_date');
   var doneT=new Set((comps.data||[]).filter(function(c){return c.completed_date===today;}).map(function(c){return c.mission_id;}));
   var doneA=new Set((comps.data||[]).map(function(c){return c.mission_id;}));
-  // Get start of current week (Monday)
-  var now=new Date();
-  var day=now.getDay()||7;
-  var weekStart=new Date(now);weekStart.setDate(now.getDate()-day+1);weekStart.setHours(0,0,0,0);
-  var weekStartStr=weekStart.toISOString().split('T')[0];
+  var weekStartStr=weekStart();
   var weekDoneIds=new Set((comps.data||[]).filter(function(c){return c.completed_date>=weekStartStr;}).map(function(c){return c.mission_id;}));
   var daily=(mis.data||[]).filter(function(m){return m.type==='daily';});
   var weekly=(mis.data||[]).filter(function(m){return m.type==='weekly';});
@@ -1652,7 +1651,7 @@ async function deleteMission(){
   if(!editId)return;
   if(!confirm('¿Borrar esta misión?'))return;
   var m=await db('/missions?id=eq.'+editId+'&select=xp_value');
-  var today=new Date().toISOString().split('T')[0];
+  var today=localDate();
   var comp=await db('/mission_completions?mission_id=eq.'+editId+'&user_id=eq.'+P.id+'&completed_date=eq.'+today+'&select=id');
   if(comp.data&&comp.data.length&&m.data&&m.data.length){
     var xpLost=m.data[0].xp_value||0;
