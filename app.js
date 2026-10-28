@@ -390,6 +390,8 @@ async function refreshDash(){
   document.getElementById('d-streak').innerHTML='racha <b>'+P.streak+'</b> '+(P.streak===1?'día':'días');
 
   // Show join/create group card when no group
+  // Sin grupo no hay misiones: se ocultan sus títulos vacíos
+  document.getElementById('page-dashboard').classList.toggle('no-group',!G);
   var joinEl=document.getElementById('d-join-group');
   if(joinEl){
     if(!G){
